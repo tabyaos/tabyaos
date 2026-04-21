@@ -1,0 +1,40 @@
+---
+# chrony-hardened — secure NTP/time synchronisation
+# PCI-DSS v4.0 Req 10.6.1 | CIS AL2023 2.1.x
+
+- name: PCI-DSS v4.0 Req 10.6.1 | Install chrony
+  ansible.builtin.dnf:
+    name: chrony
+    state: present
+  tags: [chrony, pci_dss]
+
+- name: PCI-DSS v4.0 Req 10.6.1 | Remove ntpd if installed
+  ansible.builtin.dnf:
+    name: ntp
+    state: absent
+  tags: [chrony]
+
+- name: PCI-DSS v4.0 Req 10.6.1 | Deploy hardened chrony config
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    owner: root
+    group: root
+    mode: "0640"
+  notify: restart chronyd
+  tags: [chrony, pci_dss]
+
+- name: PCI-DSS v4.0 Req 10.6.1 | Ensure chronyd is enabled and running
+  ansible.builtin.service:
+    name: chronyd
+    enabled: true
+    state: started
+  tags: [chrony, pci_dss]
+
+- name: CIS AL2023 | Restrict chrony to loopback for command interface
+  ansible.builtin.lineinfile:
+    path: /etc/chrony.conf
+    regexp: '^cmdport'
+    line: 'cmdport 0'
+  notify: restart chronyd
+  tags: [chrony]

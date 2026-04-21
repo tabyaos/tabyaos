@@ -1,0 +1,94 @@
+# Managed by Ansible — TabyaOS CIS AL2023 L2 baseline audit rules
+# Full PCI-DSS audit rules are in /etc/audit/rules.d/20-pci-dss.rules (auditd-pci role)
+# CIS AL2023 4.1.3.*
+
+# Delete all existing rules
+-D
+
+# Set buffer size — increase on busy nodes
+-b 8192
+
+# Set failure mode: 1=printk, 2=panic
+-f 1
+
+# ── Identity and authentication ────────────────────────────────────────────────
+# CIS AL2023 4.1.3.1 — Collect events that modify user/group information
+-w /etc/group  -p wa -k identity
+-w /etc/passwd -p wa -k identity
+-w /etc/gshadow -p wa -k identity
+-w /etc/shadow  -p wa -k identity
+-w /etc/security/opasswd -p wa -k identity
+
+# ── Sudoers ────────────────────────────────────────────────────────────────────
+# CIS AL2023 4.1.3.2
+-w /etc/sudoers      -p wa -k scope
+-w /etc/sudoers.d/   -p wa -k scope
+
+# ── Privileged commands ────────────────────────────────────────────────────────
+# CIS AL2023 4.1.3.4
+-a always,exit -F arch=b64 -S execve -C uid!=euid -F euid=0 -k setuid
+-a always,exit -F arch=b32 -S execve -C uid!=euid -F euid=0 -k setuid
+-a always,exit -F arch=b64 -S execve -C gid!=egid -F egid=0 -k setgid
+-a always,exit -F arch=b32 -S execve -C gid!=egid -F egid=0 -k setgid
+
+# ── System calls that modify network environment ───────────────────────────────
+# CIS AL2023 4.1.3.5
+-a always,exit -F arch=b64 -S sethostname -S setdomainname -k system-locale
+-a always,exit -F arch=b32 -S sethostname -S setdomainname -k system-locale
+-w /etc/issue       -p wa -k system-locale
+-w /etc/issue.net   -p wa -k system-locale
+-w /etc/hosts       -p wa -k system-locale
+-w /etc/sysconfig/network -p wa -k system-locale
+
+# ── MAC policy ─────────────────────────────────────────────────────────────────
+# CIS AL2023 4.1.3.6
+-w /etc/selinux/ -p wa -k MAC-policy
+-w /usr/share/selinux/ -p wa -k MAC-policy
+
+# ── Login and logout ───────────────────────────────────────────────────────────
+# CIS AL2023 4.1.3.7
+-w /var/log/lastlog -p wa -k logins
+-w /var/run/faillock/ -p wa -k logins
+
+# ── Process and session initiation ────────────────────────────────────────────
+# CIS AL2023 4.1.3.8
+-w /var/run/utmp -p wa -k session
+-w /var/log/wtmp -p wa -k session
+-w /var/log/btmp -p wa -k session
+
+# ── Discretionary access control permission modification ──────────────────────
+# CIS AL2023 4.1.3.9
+-a always,exit -F arch=b64 -S chmod,fchmod,fchmodat        -F auid>=1000 -F auid!=-1 -k perm_mod
+-a always,exit -F arch=b32 -S chmod,fchmod,fchmodat        -F auid>=1000 -F auid!=-1 -k perm_mod
+-a always,exit -F arch=b64 -S chown,fchown,fchownat,lchown -F auid>=1000 -F auid!=-1 -k perm_mod
+-a always,exit -F arch=b32 -S chown,fchown,fchownat,lchown -F auid>=1000 -F auid!=-1 -k perm_mod
+-a always,exit -F arch=b64 -S setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F auid>=1000 -F auid!=-1 -k perm_mod
+-a always,exit -F arch=b32 -S setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F auid>=1000 -F auid!=-1 -k perm_mod
+
+# ── Unsuccessful unauthorised access attempts ─────────────────────────────────
+# CIS AL2023 4.1.3.10
+-a always,exit -F arch=b64 -S creat,open,openat,truncate,ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=-1 -k access
+-a always,exit -F arch=b32 -S creat,open,openat,truncate,ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=-1 -k access
+-a always,exit -F arch=b64 -S creat,open,openat,truncate,ftruncate -F exit=-EPERM  -F auid>=1000 -F auid!=-1 -k access
+-a always,exit -F arch=b32 -S creat,open,openat,truncate,ftruncate -F exit=-EPERM  -F auid>=1000 -F auid!=-1 -k access
+
+# ── Mounts ─────────────────────────────────────────────────────────────────────
+# CIS AL2023 4.1.3.11
+-a always,exit -F arch=b64 -S mount -F auid>=1000 -F auid!=-1 -k mounts
+-a always,exit -F arch=b32 -S mount -F auid>=1000 -F auid!=-1 -k mounts
+
+# ── File deletion ─────────────────────────────────────────────────────────────
+# CIS AL2023 4.1.3.12
+-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F auid>=1000 -F auid!=-1 -k delete
+-a always,exit -F arch=b32 -S unlink,unlinkat,rename,renameat -F auid>=1000 -F auid!=-1 -k delete
+
+# ── Kernel module loading ──────────────────────────────────────────────────────
+# CIS AL2023 4.1.3.14
+-w /sbin/insmod  -p x -k modules
+-w /sbin/rmmod   -p x -k modules
+-w /sbin/modprobe -p x -k modules
+-a always,exit -F arch=b64 -S init_module,delete_module -k modules
+
+# ── Make the configuration immutable (reboot required to change rules) ─────────
+# CIS AL2023 4.1.3.20 — uncomment in production after validating all rules
+# -e 2

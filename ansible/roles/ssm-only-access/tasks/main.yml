@@ -1,0 +1,51 @@
+---
+# ssm-only-access — Disable SSH, enforce AWS SSM Session Manager for node access
+# PCI-DSS v4.0 Req 8.2.1 | CIS AL2023 5.2 | SOC 2 CC6.1
+
+- name: SSM | Ensure amazon-ssm-agent is installed
+  ansible.builtin.dnf:
+    name: amazon-ssm-agent
+    state: present
+  tags: [ssm, pci_dss, soc2]
+
+- name: SSM | Enable and start SSM agent
+  ansible.builtin.service:
+    name: amazon-ssm-agent
+    enabled: true
+    state: started
+  tags: [ssm, pci_dss, soc2]
+
+- name: SSM | Disable SSH password authentication (keys only, will be revoked next)
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+  notify: reload sshd
+  tags: [ssm]
+
+- name: SSM | Stop and disable SSHD service
+  ansible.builtin.service:
+    name: sshd
+    enabled: false
+    state: stopped
+  tags: [ssm, pci_dss]
+
+- name: SSM | Block TCP port 22 via iptables
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "22"
+    jump: DROP
+    comment: "TabyaOS: no SSH — use SSM"
+  tags: [ssm]
+
+- name: SSM | Persist iptables rule
+  ansible.builtin.command: iptables-save > /etc/sysconfig/iptables
+  changed_when: true
+  tags: [ssm]
+
+- name: SSM | Write /etc/tabyaos-release SSM marker
+  ansible.builtin.lineinfile:
+    path: /etc/tabyaos-release
+    line: "AccessMethod=ssm-only"
+  tags: [ssm]

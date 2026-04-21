@@ -1,0 +1,24 @@
+---
+- name: Converge — aide
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Install cronie (required for cron job task)
+      ansible.builtin.dnf:
+        name: cronie
+        state: present
+      retries: 3
+      delay: 5
+
+    - name: Start crond
+      ansible.builtin.service:
+        name: crond
+        state: started
+        enabled: true
+      failed_when: false
+
+  roles:
+    - role: aide
+      tags: [aide]

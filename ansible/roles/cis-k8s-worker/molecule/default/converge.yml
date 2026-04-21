@@ -1,0 +1,34 @@
+---
+- name: Converge — cis-k8s-worker
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    # kubelet/containerd are not installed in Docker test container.
+    # Override paths so file tasks don't fail on missing targets.
+    cis_k8s_kubelet_config_path: /tmp/molecule-kubelet-config.json
+    cis_k8s_kubelet_service_path: /tmp/molecule-kubelet-args.conf
+
+  pre_tasks:
+    - name: Create mock kubelet config for file-permission tasks
+      ansible.builtin.copy:
+        dest: /tmp/molecule-kubelet-config.json
+        content: |
+          {
+            "kind": "KubeletConfiguration",
+            "apiVersion": "kubelet.config.k8s.io/v1beta1",
+            "anonymous": {"enabled": true},
+            "protectKernelDefaults": false
+          }
+        mode: "0644"
+
+    - name: Create containerd config directory
+      ansible.builtin.file:
+        path: /etc/containerd
+        state: directory
+        mode: "0755"
+
+  roles:
+    - role: cis-k8s-worker
+      tags: [cis_k8s]

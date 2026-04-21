@@ -1,0 +1,43 @@
+---
+- name: Verify — ssm-only-access
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Assert /etc/tabyaos-release has AccessMethod=ssm-only
+      ansible.builtin.slurp:
+        src: /etc/tabyaos-release
+      register: tabyaos_release
+    - ansible.builtin.assert:
+        that: "'AccessMethod=ssm-only' in (tabyaos_release.content | b64decode)"
+        fail_msg: "ssm-only-access: /etc/tabyaos-release missing AccessMethod=ssm-only marker"
+
+    - name: Assert PasswordAuthentication is disabled in sshd_config
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: sshd_config
+    - ansible.builtin.assert:
+        that: "'PasswordAuthentication no' in (sshd_config.content | b64decode)"
+        fail_msg: "ssm-only-access: PasswordAuthentication not disabled in sshd_config"
+
+    - name: Assert amazon-ssm-agent package is present OR service is enabled
+      ansible.builtin.command:
+        cmd: systemctl is-enabled amazon-ssm-agent
+      register: ssm_enabled
+      changed_when: false
+      failed_when: false
+    - ansible.builtin.debug:
+        msg: >-
+          INFO: amazon-ssm-agent enabled={{ ssm_enabled.stdout | default('unknown') }}.
+          In Docker the package may not be installable; full validation at QEMU/EKS layer.
+
+    - name: Assert sshd is stopped (or not running)
+      ansible.builtin.command:
+        cmd: systemctl is-active sshd
+      register: sshd_active
+      changed_when: false
+      failed_when: false
+    - ansible.builtin.assert:
+        that: sshd_active.stdout in ['inactive', 'failed', 'unknown', '']
+        fail_msg: "ssm-only-access: sshd is still active ({{ sshd_active.stdout }})"

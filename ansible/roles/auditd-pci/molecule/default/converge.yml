@@ -1,0 +1,40 @@
+---
+- name: Converge — auditd-pci
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Install audit package
+      ansible.builtin.dnf:
+        name: audit
+        state: present
+      retries: 3
+      delay: 5
+
+    - name: Ensure /var/log/audit directory exists
+      ansible.builtin.file:
+        path: /var/log/audit
+        state: directory
+        mode: "0700"
+        owner: root
+        group: root
+
+    - name: Ensure audit.log exists for permission tasks
+      ansible.builtin.file:
+        path: /var/log/audit/audit.log
+        state: touch
+        mode: "0600"
+        owner: root
+        group: root
+
+    - name: Start auditd
+      ansible.builtin.service:
+        name: auditd
+        state: started
+        enabled: true
+      failed_when: false
+
+  roles:
+    - role: auditd-pci
+      tags: [auditd_pci, pci_dss]

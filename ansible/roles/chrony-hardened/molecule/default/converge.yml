@@ -1,0 +1,12 @@
+---
+- name: Converge — chrony-hardened
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    chrony_additional_servers: []
+
+  roles:
+    - role: chrony-hardened
+      tags: [chrony, pci_dss]

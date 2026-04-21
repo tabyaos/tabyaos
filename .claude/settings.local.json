@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(packer --version)",
+      "Bash(winget --version)",
+      "Bash(choco --version)",
+      "Bash(pip --version)",
+      "Bash(pip3 --version)",
+      "Bash(docker --version)",
+      "Bash(winget install *)",
+      "Bash(pip install *)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/QEMU:/c/Users/PC/AppData/Local/Python/pythoncore-3.14-64/Scripts\")",
+      "Bash(qemu-system-x86_64 --version)",
+      "Bash(kind --version)",
+      "Bash(molecule --version)",
+      "Bash(wsl --status)",
+      "Bash(wsl --list --verbose)",
+      "Bash(powershell -Command ' *)",
+      "Bash(kubectl version *)",
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}

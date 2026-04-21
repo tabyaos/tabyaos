@@ -1,0 +1,138 @@
+---
+# CIS AL2023 Section 4: Logging and Auditing
+
+# ── 4.1 Configure System Accounting (auditd) ──────────────────────────────────
+
+- name: CIS AL2023 4.1.1 | Ensure auditd is installed
+  ansible.builtin.dnf:
+    name: audit
+    state: present
+
+- name: CIS AL2023 4.1.1 | Ensure auditd is enabled and running
+  ansible.builtin.service:
+    name: auditd
+    enabled: true
+    state: started
+
+- name: CIS AL2023 4.1.2.1 | Set max_log_file size
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: '^max_log_file\s*='
+    line: "max_log_file = {{ cis_l2_auditd_max_log_file_mb }}"
+  notify: restart auditd
+
+- name: CIS AL2023 4.1.2.2 | Set max_log_file_action
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: '^max_log_file_action\s*='
+    line: "max_log_file_action = {{ cis_l2_auditd_max_log_file_action }}"
+  notify: restart auditd
+
+- name: CIS AL2023 4.1.2.3 | Set space_left_action
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: '^space_left_action\s*='
+    line: "space_left_action = {{ cis_l2_auditd_space_left_action }}"
+  notify: restart auditd
+
+- name: CIS AL2023 4.1.2.4 | Set admin_space_left_action
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: '^admin_space_left_action\s*='
+    line: "admin_space_left_action = {{ cis_l2_auditd_admin_space_left_action }}"
+  notify: restart auditd
+
+- name: CIS AL2023 4.1.2.5 | Set action_mail_acct
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: '^action_mail_acct\s*='
+    line: "action_mail_acct = {{ cis_l2_auditd_action_mail_acct }}"
+  notify: restart auditd
+
+- name: CIS AL2023 4.1.2.6 | Set disk_full_action
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: '^disk_full_action\s*='
+    line: "disk_full_action = {{ cis_l2_auditd_disk_full_action }}"
+  notify: restart auditd
+
+- name: CIS AL2023 4.1.2.7 | Set disk_error_action
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: '^disk_error_action\s*='
+    line: "disk_error_action = {{ cis_l2_auditd_disk_error_action }}"
+  notify: restart auditd
+
+# Audit rules are managed by the auditd-pci role for full PCI-DSS coverage.
+# Here we install the baseline system-call audit rules.
+
+- name: CIS AL2023 4.1.3.x | Deploy CIS baseline audit rules
+  ansible.builtin.template:
+    src: audit-cis-baseline.rules.j2
+    dest: /etc/audit/rules.d/10-cis-baseline.rules
+    owner: root
+    group: root
+    mode: "0640"
+  notify: restart auditd
+
+# ── 4.2 Configure Logging ─────────────────────────────────────────────────────
+
+- name: CIS AL2023 4.2.1 | Ensure rsyslog is installed
+  ansible.builtin.dnf:
+    name: rsyslog
+    state: present
+
+- name: CIS AL2023 4.2.1 | Ensure rsyslog service is enabled
+  ansible.builtin.service:
+    name: rsyslog
+    enabled: true
+    state: started
+
+- name: CIS AL2023 4.2.1.3 | Ensure default file permissions for rsyslog
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: '^\$FileCreateMode'
+    line: '$FileCreateMode 0640'
+  notify: restart rsyslog
+
+- name: CIS AL2023 4.2.1.5 | Configure rsyslog remote logging (when configured)
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    line: "*.* @@{{ cis_l2_rsyslog_remote_host }}:{{ cis_l2_rsyslog_remote_port }}"
+    insertafter: EOF
+  when: cis_l2_rsyslog_remote_host | length > 0
+  notify: restart rsyslog
+
+- name: CIS AL2023 4.2.1.6 | Disable rsyslog remote reception
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: '^\$ModLoad imudp'
+    state: absent
+  notify: restart rsyslog
+
+- name: CIS AL2023 4.2.1.6 | Disable rsyslog UDP reception
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: '^\$UDPServerRun'
+    state: absent
+  notify: restart rsyslog
+
+- name: CIS AL2023 4.2.1.6 | Disable rsyslog TCP reception
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: '^\$InputTCPServerRun'
+    state: absent
+  notify: restart rsyslog
+
+# ── 4.3 Logrotate ─────────────────────────────────────────────────────────────
+
+- name: CIS AL2023 4.3 | Ensure logrotate is installed
+  ansible.builtin.dnf:
+    name: logrotate
+    state: present
+
+- name: CIS AL2023 4.3 | Ensure logrotate is configured
+  ansible.builtin.lineinfile:
+    path: /etc/logrotate.conf
+    regexp: '^rotate'
+    line: 'rotate 52'

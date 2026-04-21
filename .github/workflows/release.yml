@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'   # e.g. v0.1.0
+
+permissions:
+  id-token: write
+  contents: write   # create GitHub Release
+  packages: write
+
+env:
+  AWS_REGION: us-east-1
+  PACKER_VERSION: "1.11.2"
+
+jobs:
+  release:
+    name: Build, sign, and publish release artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME}"          # e.g. v0.1.0
+          SHORT="${VERSION#v}"                  # e.g. 0.1.0
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "short=${SHORT}"     >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PACKER_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: tabyaos-release-${{ steps.version.outputs.short }}
+
+      - name: Install Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Packer init
+        run: packer init packer/al2023
+
+      - name: Build x86_64 AMI
+        id: build_x86
+        run: |
+          packer build \
+            -only='amazon-ebs.al2023-x86_64' \
+            -var ami_name_prefix="tabyaos-al2023-${{ steps.version.outputs.short }}" \
+            -var-file=packer/al2023/vars/al2023.auto.pkrvars.hcl \
+            -machine-readable \
+            packer/al2023 | tee /tmp/packer-x86.txt
+
+          AMI_X86=$(grep 'artifact,0,id' /tmp/packer-x86.txt | cut -d, -f6 | cut -d: -f2)
+          echo "ami_id=${AMI_X86}" >> "$GITHUB_OUTPUT"
+
+      - name: Build arm64 AMI
+        id: build_arm64
+        run: |
+          packer build \
+            -only='amazon-ebs.al2023-arm64' \
+            -var ami_name_prefix="tabyaos-al2023-${{ steps.version.outputs.short }}" \
+            -var-file=packer/al2023/vars/al2023.auto.pkrvars.hcl \
+            -machine-readable \
+            packer/al2023 | tee /tmp/packer-arm64.txt
+
+          AMI_ARM=$(grep 'artifact,0,id' /tmp/packer-arm64.txt | cut -d, -f6 | cut -d: -f2)
+          echo "ami_id=${AMI_ARM}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Generate SBOM (Syft)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          # Generate SBOMs for both AMI manifests (using the manifest file)
+          echo '{"ami_x86_64":"${{ steps.build_x86.outputs.ami_id }}","ami_arm64":"${{ steps.build_arm64.outputs.ami_id }}","version":"${{ steps.version.outputs.version }}","eks_version":"1.31"}' > /tmp/tabyaos-manifest.json
+          syft convert /tmp/tabyaos-manifest.json -o spdx-json=/tmp/tabyaos-${{ steps.version.outputs.short }}-sbom.spdx.json
+          syft convert /tmp/tabyaos-manifest.json -o cyclonedx-json=/tmp/tabyaos-${{ steps.version.outputs.short }}-sbom.cdx.json
+
+      - name: Sign SBOM with Cosign (keyless OIDC)
+        run: |
+          cosign sign-blob \
+            --yes \
+            --bundle /tmp/tabyaos-${{ steps.version.outputs.short }}-sbom.spdx.json.bundle \
+            /tmp/tabyaos-${{ steps.version.outputs.short }}-sbom.spdx.json
+
+      - name: Create provenance file
+        run: |
+          cat > /tmp/tabyaos-${{ steps.version.outputs.short }}-provenance.json <<EOF
+          {
+            "version": "${{ steps.version.outputs.version }}",
+            "git_sha": "${{ github.sha }}",
+            "build_run": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "ami_x86_64": "${{ steps.build_x86.outputs.ami_id }}",
+            "ami_arm64": "${{ steps.build_arm64.outputs.ami_id }}",
+            "aws_region": "${{ env.AWS_REGION }}",
+            "eks_version": "1.31",
+            "hardening_level": "cis_l2+pci_dss+soc2",
+            "signed_by": "cosign-keyless-oidc",
+            "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: TabyaOS ${{ steps.version.outputs.version }}
+          body: |
+            ## TabyaOS ${{ steps.version.outputs.version }}
+
+            Hardened Amazon Linux 2023 AMI for EKS worker nodes.
+
+            ### AMI IDs
+
+            | Architecture | AMI ID | Region |
+            |---|---|---|
+            | x86_64 | `${{ steps.build_x86.outputs.ami_id }}` | ${{ env.AWS_REGION }} |
+            | arm64 | `${{ steps.build_arm64.outputs.ami_id }}` | ${{ env.AWS_REGION }} |
+
+            ### Compliance coverage
+
+            - CIS Amazon Linux 2023 Benchmark Level 2
+            - CIS Kubernetes Benchmark v1.8 (Worker Node)
+            - PCI-DSS v4.0 (Requirements 1, 2, 5, 6, 7, 8, 10, 11)
+            - SOC 2 Type II (CC6, CC7, CC8)
+
+            ### Verification
+
+            ```bash
+            # Verify SBOM signature
+            cosign verify-blob \
+              --bundle tabyaos-${{ steps.version.outputs.short }}-sbom.spdx.json.bundle \
+              tabyaos-${{ steps.version.outputs.short }}-sbom.spdx.json
+            ```
+
+            Built by GitHub Actions · Commit `${{ github.sha }}`
+          files: |
+            /tmp/tabyaos-${{ steps.version.outputs.short }}-sbom.spdx.json
+            /tmp/tabyaos-${{ steps.version.outputs.short }}-sbom.cdx.json
+            /tmp/tabyaos-${{ steps.version.outputs.short }}-sbom.spdx.json.bundle
+            /tmp/tabyaos-${{ steps.version.outputs.short }}-provenance.json
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}

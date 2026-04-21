@@ -1,0 +1,25 @@
+---
+# CIS Kubernetes Benchmark v1.8 — Worker Node defaults
+
+# 4.1 Worker Node Configuration Files
+cis_k8s_kubelet_config_path: /etc/kubernetes/kubelet/kubelet-config.json
+cis_k8s_kubelet_service_path: /etc/systemd/system/kubelet.service.d/10-kubelet-args.conf
+
+# 4.2 Kubelet settings
+cis_k8s_anonymous_auth: false             # CIS K8s 4.2.1
+cis_k8s_authorization_mode: Webhook       # CIS K8s 4.2.2
+cis_k8s_client_ca_file: /etc/kubernetes/pki/ca.crt  # CIS K8s 4.2.3
+cis_k8s_read_only_port: 0                 # CIS K8s 4.2.4 — disable read-only port
+cis_k8s_streaming_connection_idle_timeout: 5m  # CIS K8s 4.2.5
+cis_k8s_protect_kernel_defaults: true     # CIS K8s 4.2.6
+cis_k8s_make_iptables_util_chains: true   # CIS K8s 4.2.7
+cis_k8s_event_qps: 0                      # CIS K8s 4.2.9
+cis_k8s_rotate_certificates: true         # CIS K8s 4.2.11
+cis_k8s_tls_min_version: VersionTLS12     # CIS K8s 4.2.12
+cis_k8s_tls_cipher_suites:               # CIS K8s 4.2.12
+  - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+  - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+  - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+  - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+  - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+  - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305

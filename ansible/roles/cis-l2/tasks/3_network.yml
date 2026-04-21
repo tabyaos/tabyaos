@@ -1,0 +1,158 @@
+---
+# CIS AL2023 Section 3: Network Configuration
+
+# ── 3.1 Disable Unused Network Protocols ─────────────────────────────────────
+
+- name: CIS AL2023 3.1.1 | Disable IPv6 if not in use
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: "1"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-cis-ipv6.conf
+  loop:
+    - net.ipv6.conf.all.disable_ipv6
+    - net.ipv6.conf.default.disable_ipv6
+  when: cis_l2_disable_ipv6 | bool
+
+# ── 3.2 Network Parameters (Host Only) ───────────────────────────────────────
+
+- name: CIS AL2023 3.2.1 | Disable IP source routing
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: "{{ cis_l2_net_accept_source_route }}"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-cis-network.conf
+  loop:
+    - net.ipv4.conf.all.accept_source_route
+    - net.ipv4.conf.default.accept_source_route
+    - net.ipv6.conf.all.accept_source_route
+    - net.ipv6.conf.default.accept_source_route
+
+- name: CIS AL2023 3.2.2 | Disable send redirects
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: "{{ cis_l2_net_send_redirects }}"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-cis-network.conf
+  loop:
+    - net.ipv4.conf.all.send_redirects
+    - net.ipv4.conf.default.send_redirects
+
+- name: CIS AL2023 3.2.3 | Disable accept redirects
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: "{{ cis_l2_net_accept_redirects }}"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-cis-network.conf
+  loop:
+    - net.ipv4.conf.all.accept_redirects
+    - net.ipv4.conf.default.accept_redirects
+
+- name: CIS AL2023 3.2.4 | Disable secure redirects
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: "{{ cis_l2_net_secure_redirects }}"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-cis-network.conf
+  loop:
+    - net.ipv4.conf.all.secure_redirects
+    - net.ipv4.conf.default.secure_redirects
+
+- name: CIS AL2023 3.2.5 | Enable log martian packets
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: "{{ cis_l2_net_log_martians }}"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-cis-network.conf
+  loop:
+    - net.ipv4.conf.all.log_martians
+    - net.ipv4.conf.default.log_martians
+
+- name: CIS AL2023 3.2.6 | Enable reverse path filtering
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: "{{ cis_l2_net_rp_filter }}"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-cis-network.conf
+  loop:
+    - net.ipv4.conf.all.rp_filter
+    - net.ipv4.conf.default.rp_filter
+
+# ── 3.3 Network Parameters (Host and Router) ──────────────────────────────────
+
+- name: CIS AL2023 3.3.1 | Enable TCP SYN cookies
+  ansible.posix.sysctl:
+    name: net.ipv4.tcp_syncookies
+    value: "{{ cis_l2_net_tcp_syncookies }}"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-cis-network.conf
+
+- name: CIS AL2023 3.3.2 | Ignore ICMP broadcast requests
+  ansible.posix.sysctl:
+    name: net.ipv4.icmp_echo_ignore_broadcasts
+    value: "{{ cis_l2_net_ignore_broadcasts }}"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-cis-network.conf
+
+- name: CIS AL2023 3.3.3 | Ignore bogus ICMP error responses
+  ansible.posix.sysctl:
+    name: net.ipv4.icmp_ignore_bogus_error_responses
+    value: "{{ cis_l2_net_ignore_bogus_errors }}"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-cis-network.conf
+
+- name: CIS AL2023 3.3.4-5 | IPv4 forwarding (required for K8s pod networking)
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "{{ cis_l2_net_ipv4_forward }}"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-cis-k8s-network.conf
+
+# ── 3.4 Uncommon Network Protocols ───────────────────────────────────────────
+
+- name: CIS AL2023 3.4.1 | Disable DCCP
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/dccp.conf
+    content: "install dccp /bin/true\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: cis_l2_disable_dccp | bool
+
+- name: CIS AL2023 3.4.2 | Disable SCTP
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/sctp.conf
+    content: "install sctp /bin/true\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: cis_l2_disable_sctp | bool
+
+- name: CIS AL2023 3.4.3 | Disable RDS
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/rds.conf
+    content: "install rds /bin/true\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: cis_l2_disable_rds | bool
+
+- name: CIS AL2023 3.4.4 | Disable TIPC
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/tipc.conf
+    content: "install tipc /bin/true\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: cis_l2_disable_tipc | bool

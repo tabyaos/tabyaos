@@ -1,0 +1,33 @@
+---
+# kind cluster configuration for TabyaOS smoke testing.
+# Single-node cluster (control-plane only, tolerations allow workloads).
+# The node image here is the standard kindest/node image; a hardened
+# node image (built via Packer → kind load docker-image) can be substituted
+# by overriding KIND_NODE_IMAGE in the environment.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+name: tabyaos-smoke
+
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.31.4
+    # Expose kube-bench output via hostPath so results survive pod deletion.
+    extraMounts:
+      - hostPath: /tmp/tabyaos-kind-results
+        containerPath: /results
+    # Enable Pod Security Admission at the cluster level.
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            # Enable PSA enforcement so privileged-container rejection test works.
+            feature-gates: "PodSecurity=true"
+
+# Networking: use kindnet CNI so NetworkPolicy is enforced.
+networking:
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/16"
+  # Disable default CNI so kindnet (which supports NetworkPolicy) is used.
+  disableDefaultCNI: false

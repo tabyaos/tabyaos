@@ -1,0 +1,28 @@
+---
+# CIS Amazon Linux 2023 Benchmark Level 2
+# All tasks are tagged so individual sections can be skipped:
+#   ansible-playbook harden.yml --skip-tags cis_l2_network
+
+- name: CIS L2 | Section 1 — Filesystem Configuration
+  ansible.builtin.import_tasks: 1_filesystem.yml
+  tags: [cis_l2, cis_l2_filesystem]
+
+- name: CIS L2 | Section 2 — Services
+  ansible.builtin.import_tasks: 2_services.yml
+  tags: [cis_l2, cis_l2_services]
+
+- name: CIS L2 | Section 3 — Network Configuration
+  ansible.builtin.import_tasks: 3_network.yml
+  tags: [cis_l2, cis_l2_network]
+
+- name: CIS L2 | Section 4 — Logging and Auditing
+  ansible.builtin.import_tasks: 4_logging.yml
+  tags: [cis_l2, cis_l2_logging]
+
+- name: CIS L2 | Section 5 — Access, Authentication and Authorization
+  ansible.builtin.import_tasks: 5_access.yml
+  tags: [cis_l2, cis_l2_access]
+
+- name: CIS L2 | Section 6 — System Maintenance
+  ansible.builtin.import_tasks: 6_maintenance.yml
+  tags: [cis_l2, cis_l2_maintenance]

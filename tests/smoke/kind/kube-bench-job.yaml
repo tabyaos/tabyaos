@@ -1,0 +1,63 @@
+---
+# kube-bench Job for kind clusters.
+# Uses the cis-1.8 benchmark (kubeadm-based), not eks-1.4.0 (EKS-specific).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kube-bench-kind
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kube-bench
+    tabyaos.io/test: "true"
+    tabyaos.io/target: kind
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      hostPID: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: kube-bench
+          image: aquasec/kube-bench:latest
+          command:
+            - kube-bench
+            - run
+            - --targets=node
+            - --benchmark=cis-1.8
+            - --json
+          volumeMounts:
+            - name: var-lib-kubelet
+              mountPath: /var/lib/kubelet
+              readOnly: true
+            - name: etc-systemd
+              mountPath: /etc/systemd
+              readOnly: true
+            - name: etc-kubernetes
+              mountPath: /etc/kubernetes
+              readOnly: true
+            - name: results
+              mountPath: /results
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+      volumes:
+        - name: var-lib-kubelet
+          hostPath:
+            path: /var/lib/kubelet
+        - name: etc-systemd
+          hostPath:
+            path: /etc/systemd
+        - name: etc-kubernetes
+          hostPath:
+            path: /etc/kubernetes
+        - name: results
+          hostPath:
+            path: /results
+            type: DirectoryOrCreate
+      restartPolicy: Never
+  backoffLimit: 0

@@ -1,0 +1,113 @@
+---
+# SOC 2 Type II — Trust Service Criteria
+# CC6: Logical and Physical Access Controls
+# CC7: System Operations
+# CC8: Change Management
+
+# ── CC6 — Logical and Physical Access Controls ────────────────────────────────
+
+- name: SOC 2 CC6.1 | Ensure logical access controls are enforced (SSH hardening via cis-l2)
+  ansible.builtin.debug:
+    msg: "CC6.1 — SSH hardening applied by cis-l2 role (5_access.yml)"
+  tags: [soc2, cc6]
+
+- name: SOC 2 CC6.1 | Enforce minimum privilege — ensure no world-readable /etc/shadow
+  ansible.builtin.file:
+    path: /etc/shadow
+    owner: root
+    group: shadow
+    mode: "0000"
+  tags: [soc2, cc6]
+
+- name: SOC 2 CC6.2 | Record prior authentication — enable login history
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/sshd
+    line: "session    required     pam_lastlog.so showfailed"
+    insertafter: "^session"
+  tags: [soc2, cc6]
+
+- name: SOC 2 CC6.3 | Ensure user access reviews are supported — report accounts
+  ansible.builtin.shell: |
+    set -o pipefail
+    awk -F: '($3 >= 1000 && $7 != "/sbin/nologin") {print $1, $3}' /etc/passwd
+  register: user_accounts
+  changed_when: false
+  tags: [soc2, cc6]
+
+- name: SOC 2 CC6.6 | Block unnecessary inbound ports via sysctl
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.accept_redirects
+    value: "0"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-soc2-cc6.conf
+  tags: [soc2, cc6]
+
+- name: SOC 2 CC6.7 | Ensure transmission encryption is configured (TLS only — handled by kubelet)
+  ansible.builtin.debug:
+    msg: "CC6.7 — TLS minimum version enforced in cis-k8s-worker role (cis_k8s_tls_min_version)"
+  tags: [soc2, cc6]
+
+- name: SOC 2 CC6.8 | Prevent malware / detect unauthorized software via AIDE
+  ansible.builtin.debug:
+    msg: "CC6.8 — File integrity monitoring via AIDE (aide role)"
+  tags: [soc2, cc6]
+
+# ── CC7 — System Operations ───────────────────────────────────────────────────
+
+- name: SOC 2 CC7.1 | Ensure system monitoring infrastructure is enabled
+  ansible.builtin.service:
+    name: auditd
+    enabled: true
+    state: started
+  tags: [soc2, cc7]
+
+- name: SOC 2 CC7.2 | Monitor system components for anomalies — annotate auditd
+  ansible.builtin.copy:
+    dest: /etc/audit/rules.d/30-soc2-cc7.rules
+    content: |
+      # SOC 2 CC7.2 — Monitor for anomalous system behaviour
+      -w /bin/bash   -p x -k soc2_shell_exec
+      -w /bin/sh     -p x -k soc2_shell_exec
+      -w /usr/bin/python3 -p x -k soc2_interpreter_exec
+      -w /usr/bin/perl    -p x -k soc2_interpreter_exec
+      # Monitor kubectl and aws CLI execution
+      -w /usr/local/bin/kubectl -p x -k soc2_k8s_admin
+      -w /usr/local/bin/aws     -p x -k soc2_aws_admin
+    owner: root
+    group: root
+    mode: "0640"
+  notify: restart auditd
+  tags: [soc2, cc7]
+
+- name: SOC 2 CC7.3 | Ensure incident response data is captured — protect var/log
+  ansible.builtin.file:
+    path: /var/log
+    owner: root
+    group: root
+    mode: "0755"
+  tags: [soc2, cc7]
+
+- name: SOC 2 CC7.4 | Ensure security events are logged — rsyslog config
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: '^authpriv\.\*'
+    line: 'authpriv.*   /var/log/secure'
+  notify: restart rsyslog
+  tags: [soc2, cc7]
+
+# ── CC8 — Change Management ───────────────────────────────────────────────────
+
+- name: SOC 2 CC8.1 | Write change management marker to node metadata
+  ansible.builtin.copy:
+    dest: /etc/tabyaos-change-record
+    content: |
+      # SOC 2 CC8.1 — Change management record
+      # Each TabyaOS AMI build is a discrete, versioned, Cosign-signed artefact.
+      # All changes go through CI (GitHub Actions) with audit trail in git log.
+      # Manual changes to this node are a CC8.1 deviation and must be documented.
+      BuildPipeline=github-actions
+      ChangeProcess=immutable-ami-replacement
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [soc2, cc8]

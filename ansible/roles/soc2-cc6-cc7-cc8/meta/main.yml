@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: soc2_cc6_cc7_cc8
+  author: tabyaos
+  description: SOC 2 Type II Trust Service Criteria CC6/CC7/CC8 node-level overlay
+  license: BSL-1.1
+  min_ansible_version: "2.14"
+
+dependencies:
+  - role: cis-l2
+  - role: auditd-pci
+  - role: aide

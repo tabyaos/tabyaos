@@ -1,0 +1,55 @@
+# Managed by Ansible — PCI-DSS v4.0 audit rules
+# These extend the CIS baseline rules in 10-cis-baseline.rules.
+# References: PCI-DSS v4.0 Requirement 10.2.x
+
+# ── PCI-DSS v4.0 Req 10.2.1.1 — All access to cardholder data ───────────────
+# Tag any access to files under typical CHD paths (adjust to actual paths)
+-w /var/lib/cde/          -p rwa -k pci_chd_access
+-w /etc/pki/             -p rwa -k pci_cert_access
+
+# ── PCI-DSS v4.0 Req 10.2.1.2 — Administrative actions ──────────────────────
+-w /etc/sudoers          -p wa  -k pci_admin
+-w /etc/sudoers.d/       -p wa  -k pci_admin
+-w /etc/passwd           -p wa  -k pci_identity
+-w /etc/shadow           -p wa  -k pci_identity
+-w /etc/group            -p wa  -k pci_identity
+
+# ── PCI-DSS v4.0 Req 10.2.1.3 — Audit log access ────────────────────────────
+-w /var/log/audit/       -p rwa -k pci_audit_log_access
+-w /etc/audit/           -p wa  -k pci_audit_config
+
+# ── PCI-DSS v4.0 Req 10.2.1.4 — Authentication mechanisms ───────────────────
+-w /etc/pam.d/           -p wa  -k pci_auth_config
+-w /etc/security/        -p wa  -k pci_auth_config
+-w /etc/ssh/sshd_config  -p wa  -k pci_auth_config
+
+# ── PCI-DSS v4.0 Req 10.2.1.5 — Use of privileged commands ──────────────────
+-a always,exit -F arch=b64 -S execve -F euid=0 -F auid>=1000 -F auid!=-1 -k pci_priv_cmd
+-a always,exit -F arch=b32 -S execve -F euid=0 -F auid>=1000 -F auid!=-1 -k pci_priv_cmd
+
+# ── PCI-DSS v4.0 Req 10.2.1.6 — Initialisation, stopping, pausing of audit logs ──
+-w /sbin/auditd          -p x   -k pci_audit_daemon
+-w /etc/init.d/auditd    -p rwa -k pci_audit_init
+
+# ── PCI-DSS v4.0 Req 10.2.1.7 — Creation / deletion of system-level objects ─
+-a always,exit -F arch=b64 -S mknod,mknodat,unlink,unlinkat,rename,renameat -F auid>=1000 -F auid!=-1 -k pci_object_mgmt
+-a always,exit -F arch=b32 -S mknod,mknodat,unlink,unlinkat,rename,renameat -F auid>=1000 -F auid!=-1 -k pci_object_mgmt
+
+# ── PCI-DSS v4.0 Req 10.2.2 — Kernel module changes ─────────────────────────
+-w /sbin/insmod          -p x   -k pci_modules
+-w /sbin/rmmod           -p x   -k pci_modules
+-w /sbin/modprobe        -p x   -k pci_modules
+-a always,exit -F arch=b64 -S init_module,delete_module -k pci_modules
+-a always,exit -F arch=b32 -S init_module,delete_module -k pci_modules
+
+# ── PCI-DSS v4.0 Req 10.2.x — Network socket operations ─────────────────────
+-a always,exit -F arch=b64 -S socket -F a0=2  -k pci_network_socket
+-a always,exit -F arch=b64 -S connect -k pci_network_connect
+-a always,exit -F arch=b64 -S accept  -k pci_network_accept
+-a always,exit -F arch=b32 -S socket  -F a0=2  -k pci_network_socket
+-a always,exit -F arch=b32 -S connect -k pci_network_connect
+-a always,exit -F arch=b32 -S accept  -k pci_network_accept
+
+# ── PCI-DSS v4.0 Req 10.3.2 — Make audit configuration immutable ─────────────
+# This rule MUST be last. Uncomment once rule set is stable.
+# -e 2

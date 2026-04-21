@@ -1,0 +1,94 @@
+name: Security scan
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'   # every Monday at 03:00 UTC
+  push:
+    branches: [main]
+    paths:
+      - 'packer/**'
+      - 'ansible/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-iac:
+    name: Trivy IaC scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy IaC scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-iac-results.sarif
+          severity: HIGH,CRITICAL
+
+      - name: Upload Trivy IaC SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-iac-results.sarif
+          category: trivy-iac
+
+  checkov-packer:
+    name: Checkov Packer scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Checkov on Packer HCL
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: packer/
+          framework: packer
+          output_format: sarif
+          output_file_path: checkov-packer.sarif
+          soft_fail: true
+
+      - name: Upload Checkov Packer SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-packer.sarif
+          category: checkov-packer
+
+  checkov-ansible:
+    name: Checkov Ansible scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Checkov on Ansible roles
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: ansible/
+          framework: ansible
+          output_format: sarif
+          output_file_path: checkov-ansible.sarif
+          soft_fail: true
+
+      - name: Upload Checkov Ansible SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-ansible.sarif
+          category: checkov-ansible
+
+  gitleaks:
+    name: Secret scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

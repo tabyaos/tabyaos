@@ -1,0 +1,29 @@
+---
+- name: reload sshd
+  ansible.builtin.service:
+    name: sshd
+    state: reloaded
+
+- name: restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+
+- name: restart rsyslog
+  ansible.builtin.service:
+    name: rsyslog
+    state: restarted
+
+- name: restart chronyd
+  ansible.builtin.service:
+    name: chronyd
+    state: restarted
+
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: rebuild initramfs
+  ansible.builtin.command: dracut -f
+  args:
+    warn: false

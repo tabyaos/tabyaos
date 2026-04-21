@@ -1,0 +1,28 @@
+---
+# PCI-DSS v4.0 node-level control defaults
+
+# Req 2 — System configuration
+pci_dss_disable_unnecessary_services: true   # Req 2.2.1
+pci_dss_change_vendor_defaults: true         # Req 2.2.2
+
+# Req 5 — Malware protection
+pci_dss_install_antimalware: false           # ClamAV install flag — opt-in
+pci_dss_antimalware_package: clamd
+
+# Req 6 — Patching
+pci_dss_enable_auto_security_updates: false  # Req 6.3.3 — manual in immutable AMI workflow
+pci_dss_dnf_security_only: true
+
+# Req 7 — Access restriction
+pci_dss_restrict_root_ssh: true              # Req 7.2.x
+
+# Req 8 — Authentication
+pci_dss_mfa_required: false                  # Req 8.4.2 — enforced at IdP level, noted here
+pci_dss_session_timeout_seconds: 900         # Req 8.2.8
+
+# Req 10 — Audit logging
+pci_dss_audit_log_retention_days: 365        # Req 10.7.1
+pci_dss_time_sync_server: ""                 # Req 10.6 — set to NTP/chrony server IP
+
+# Req 11 — Testing
+pci_dss_file_integrity_monitoring: true      # Req 11.3 — uses AIDE role

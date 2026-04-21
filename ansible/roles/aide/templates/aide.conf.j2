@@ -1,0 +1,45 @@
+# Managed by Ansible — AIDE configuration for TabyaOS
+# CIS AL2023 1.3 | PCI-DSS v4.0 Req 11.3.1
+
+@@define DBDIR /var/lib/aide
+@@define LOGDIR /var/log/aide
+
+database=file:@@{DBDIR}/aide.db.gz
+database_out=file:@@{DBDIR}/aide.db.new.gz
+gzip_dbout=yes
+
+report_url=file:@@{LOGDIR}/aide.log
+report_url=stdout
+verbose=5
+
+# Attribute groups
+FIPSR = p+i+n+u+g+s+m+c+acl+selinux+xattrs+sha512
+CONTENT_EX = sha512+ftype
+DATAONLY = p+n+u+g+s+acl+selinux+xattrs+sha512
+PERMS = p+i+u+g+acl+selinux
+
+# Critical system binaries and configs
+/boot     FIPSR
+/etc      FIPSR
+/usr/bin  FIPSR
+/usr/sbin FIPSR
+/usr/lib  CONTENT_EX
+/usr/lib64 CONTENT_EX
+/sbin     FIPSR
+/bin      FIPSR
+
+# EKS bootstrap artefacts
+/etc/eks  FIPSR
+/var/lib/kubelet/pki FIPSR
+
+# Exclude volatile paths
+!/proc
+!/sys
+!/dev
+!/var/log/audit
+!/var/log/journal
+!/run
+!/tmp
+!/var/tmp
+!/var/lib/containerd
+!/var/lib/docker

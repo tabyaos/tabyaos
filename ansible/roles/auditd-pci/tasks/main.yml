@@ -1,0 +1,44 @@
+---
+# PCI-DSS v4.0 auditd rules — node-level audit events
+# Covers Requirements 10.2.x (audit log generation)
+
+- name: PCI-DSS v4.0 Req 10.2 | Ensure auditd is installed
+  ansible.builtin.dnf:
+    name: audit
+    state: present
+  tags: [auditd_pci, pci_dss]
+
+- name: PCI-DSS v4.0 Req 10.2 | Deploy PCI-DSS audit rules
+  ansible.builtin.template:
+    src: pci-dss.rules.j2
+    dest: /etc/audit/rules.d/20-pci-dss.rules
+    owner: root
+    group: root
+    mode: "0640"
+  notify: restart auditd
+  tags: [auditd_pci, pci_dss]
+
+- name: PCI-DSS v4.0 Req 10.5.1 | Ensure audit logs cannot be deleted
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: '^write_logs\s*='
+    line: 'write_logs = yes'
+  notify: restart auditd
+  tags: [auditd_pci, pci_dss]
+
+- name: PCI-DSS v4.0 Req 10.3.2 | Protect audit log files from modification
+  ansible.builtin.file:
+    path: /var/log/audit
+    owner: root
+    group: root
+    mode: "0700"
+  tags: [auditd_pci, pci_dss]
+
+- name: PCI-DSS v4.0 Req 10.3.2 | Protect audit log file
+  ansible.builtin.file:
+    path: /var/log/audit/audit.log
+    owner: root
+    group: root
+    mode: "0600"
+  failed_when: false
+  tags: [auditd_pci, pci_dss]

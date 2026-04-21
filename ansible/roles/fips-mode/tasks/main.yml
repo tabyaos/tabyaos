@@ -1,0 +1,38 @@
+---
+# fips-mode — Enable FIPS 140-2/3 mode using OS-validated crypto modules
+# AL2023 uses the kernel FIPS mode backed by the OpenSSL / GnuTLS FIPS provider.
+# Full FIPS 140-3 validation is via the underlying AWS crypto libraries.
+
+- name: FIPS | Verify kernel supports FIPS mode
+  ansible.builtin.command: grep -r fips /proc/cmdline
+  register: fips_cmdline
+  changed_when: false
+  failed_when: false
+  tags: [fips]
+
+- name: FIPS | Install FIPS packages
+  ansible.builtin.dnf:
+    name:
+      - crypto-policies
+      - crypto-policies-scripts
+      - openssl
+    state: present
+  tags: [fips]
+
+- name: FIPS | Set crypto policy to FIPS
+  ansible.builtin.command: update-crypto-policies --set FIPS
+  changed_when: true
+  tags: [fips]
+
+- name: FIPS | Enable FIPS mode in kernel (requires reboot)
+  ansible.builtin.command: fips-mode-setup --enable
+  register: fips_setup
+  changed_when: "'FIPS mode will be enabled' in fips_setup.stdout"
+  failed_when: fips_setup.rc not in [0, 1]
+  tags: [fips]
+
+- name: FIPS | Write /etc/tabyaos-release FIPS marker
+  ansible.builtin.lineinfile:
+    path: /etc/tabyaos-release
+    line: "FIPSMode=enabled-pending-reboot"
+  tags: [fips]

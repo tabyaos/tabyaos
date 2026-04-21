@@ -1,0 +1,55 @@
+---
+- name: Converge — pci-dss-v4
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    # Don't install ClamAV in unit tests — slow download.
+    pci_dss_install_antimalware: false
+    # Skip auto-updates in test (no network guaranteed).
+    pci_dss_dnf_security_only: false
+    # No time server in test container.
+    pci_dss_time_sync_server: ""
+    # Skip inactive-account chage commands (no real users).
+    pci_dss_inactive_accounts: []
+
+  pre_tasks:
+    - name: Install prerequisites
+      ansible.builtin.dnf:
+        name:
+          - audit
+          - chrony
+          - sudo
+          - shadow-utils
+          - util-linux
+        state: present
+      retries: 3
+      delay: 5
+
+    - name: Create /etc/security/faillock.conf if absent
+      ansible.builtin.file:
+        path: /etc/security/faillock.conf
+        state: touch
+        mode: "0644"
+
+    - name: Create /etc/sudoers (minimal, for lineinfile tests)
+      ansible.builtin.copy:
+        dest: /etc/sudoers
+        content: |
+          root ALL=(ALL) ALL
+          %wheel ALL=(ALL) ALL
+        mode: "0440"
+        validate: '/usr/sbin/visudo -cf %s'
+      failed_when: false
+
+    - name: Start chronyd
+      ansible.builtin.service:
+        name: chronyd
+        state: started
+        enabled: true
+      failed_when: false
+
+  roles:
+    - role: pci-dss-v4
+      tags: [pci_dss]

@@ -1,0 +1,163 @@
+---
+# PCI-DSS v4.0 — node-applicable controls
+# Scope: Requirements 1, 2, 5, 6, 7, 8, 10, 11
+# Each task references the specific requirement number in its name.
+
+# ── Requirement 2 — Apply secure configurations ───────────────────────────────
+
+- name: PCI-DSS v4.0 Req 2.2.1 | Remove unnecessary services (delegated to cis-l2 role)
+  ansible.builtin.debug:
+    msg: "Service removal handled by cis-l2 role — see cis_l2_remove_* defaults"
+  tags: [pci_dss, pci_req2]
+
+- name: PCI-DSS v4.0 Req 2.2.3 | Ensure wireless interfaces are disabled on nodes
+  ansible.builtin.command: nmcli radio wifi off
+  changed_when: false
+  failed_when: false
+  tags: [pci_dss, pci_req2]
+
+- name: PCI-DSS v4.0 Req 2.2.4 | Disable Bluetooth
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/bluetooth.conf
+    content: "install bluetooth /bin/true\nblacklist bluetooth\n"
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [pci_dss, pci_req2]
+
+- name: PCI-DSS v4.0 Req 2.2.5 | Set kernel dmesg restriction
+  ansible.posix.sysctl:
+    name: kernel.dmesg_restrict
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-pci-dss.conf
+  tags: [pci_dss, pci_req2]
+
+- name: PCI-DSS v4.0 Req 2.2.5 | Restrict kernel pointer exposure
+  ansible.posix.sysctl:
+    name: kernel.kptr_restrict
+    value: "2"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-pci-dss.conf
+  tags: [pci_dss, pci_req2]
+
+# ── Requirement 5 — Malware protection ───────────────────────────────────────
+
+- name: PCI-DSS v4.0 Req 5.2.1 | Install ClamAV antimalware (optional)
+  ansible.builtin.dnf:
+    name:
+      - clamd
+      - clamav
+      - clamav-update
+    state: present
+  when: pci_dss_install_antimalware | bool
+  tags: [pci_dss, pci_req5]
+
+- name: PCI-DSS v4.0 Req 5.2.1 | Enable and start clamd
+  ansible.builtin.service:
+    name: clamd@scan
+    enabled: true
+    state: started
+  when: pci_dss_install_antimalware | bool
+  tags: [pci_dss, pci_req5]
+
+- name: PCI-DSS v4.0 Req 5.2.1 | Schedule daily freshclam update
+  ansible.builtin.cron:
+    name: freshclam-daily
+    minute: "17"
+    hour: "3"
+    job: /usr/bin/freshclam --quiet
+    user: root
+  when: pci_dss_install_antimalware | bool
+  tags: [pci_dss, pci_req5]
+
+# ── Requirement 6 — Protect systems and software ─────────────────────────────
+
+- name: PCI-DSS v4.0 Req 6.3.3 | Apply pending security updates
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    security: "{{ pci_dss_dnf_security_only | bool }}"
+  when: pci_dss_dnf_security_only | bool
+  tags: [pci_dss, pci_req6]
+
+- name: PCI-DSS v4.0 Req 6.4.1 | Disable public-facing web services on nodes
+  ansible.builtin.service:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop:
+    - httpd
+    - nginx
+  failed_when: false
+  tags: [pci_dss, pci_req6]
+
+# ── Requirement 7 — Restrict access ──────────────────────────────────────────
+
+- name: PCI-DSS v4.0 Req 7.2.1 | Ensure sudo requires authentication
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    regexp: '^Defaults.*NOPASSWD'
+    state: absent
+    validate: '/usr/sbin/visudo -cf %s'
+  tags: [pci_dss, pci_req7]
+
+- name: PCI-DSS v4.0 Req 7.2.2 | Log all sudo usage
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    regexp: '^Defaults.*logfile'
+    line: 'Defaults logfile=/var/log/sudo.log'
+    validate: '/usr/sbin/visudo -cf %s'
+  tags: [pci_dss, pci_req7]
+
+- name: PCI-DSS v4.0 Req 7.2.4 | Lock inactive user accounts
+  ansible.builtin.command: chage --inactive {{ pci_dss_audit_log_retention_days }} {{ item }}
+  loop: "{{ pci_dss_inactive_accounts | default([]) }}"
+  tags: [pci_dss, pci_req7]
+
+# ── Requirement 8 — Identify users and authenticate access ───────────────────
+
+- name: PCI-DSS v4.0 Req 8.2.8 | Set session idle timeout
+  ansible.builtin.copy:
+    dest: /etc/profile.d/99-pci-session-timeout.sh
+    content: |
+      # PCI-DSS v4.0 Req 8.2.8 — Session idle timeout
+      readonly TMOUT={{ pci_dss_session_timeout_seconds }}
+      export TMOUT
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [pci_dss, pci_req8]
+
+- name: PCI-DSS v4.0 Req 8.3.4 | Set account lockout after failed attempts
+  ansible.builtin.lineinfile:
+    path: /etc/security/faillock.conf
+    regexp: "^deny"
+    line: "deny = 10"
+  tags: [pci_dss, pci_req8]
+
+# ── Requirement 10 — Log and monitor ─────────────────────────────────────────
+
+- name: PCI-DSS v4.0 Req 10.6.1 | Ensure time synchronisation is configured
+  ansible.builtin.service:
+    name: chronyd
+    enabled: true
+    state: started
+  tags: [pci_dss, pci_req10]
+
+- name: PCI-DSS v4.0 Req 10.6.1 | Configure chrony time source (if specified)
+  ansible.builtin.lineinfile:
+    path: /etc/chrony.conf
+    regexp: '^server {{ pci_dss_time_sync_server }}'
+    line: "server {{ pci_dss_time_sync_server }} iburst"
+    insertafter: '^# Please consider'
+  when: pci_dss_time_sync_server | length > 0
+  notify: restart chronyd
+  tags: [pci_dss, pci_req10]
+
+# ── Requirement 11 — Test security controls ───────────────────────────────────
+
+- name: PCI-DSS v4.0 Req 11.3.1 | Ensure AIDE is installed (file integrity monitoring)
+  ansible.builtin.debug:
+    msg: "AIDE installation handled by aide role — pci_dss_file_integrity_monitoring={{ pci_dss_file_integrity_monitoring }}"
+  tags: [pci_dss, pci_req11]

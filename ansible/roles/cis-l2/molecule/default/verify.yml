@@ -1,0 +1,146 @@
+---
+- name: Verify — cis-l2
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    # ── 1.1.1 Filesystem module blacklists ───────────────────────────────────
+    - name: Assert cramfs modprobe config exists
+      ansible.builtin.stat:
+        path: /etc/modprobe.d/cramfs.conf
+      register: cramfs_conf
+    - ansible.builtin.assert:
+        that: cramfs_conf.stat.exists
+        fail_msg: "CIS 1.1.1.1: /etc/modprobe.d/cramfs.conf missing"
+
+    - name: Assert usb-storage modprobe config exists
+      ansible.builtin.stat:
+        path: /etc/modprobe.d/usb-storage.conf
+      register: usb_conf
+    - ansible.builtin.assert:
+        that: usb_conf.stat.exists
+        fail_msg: "CIS 1.1.1.4: /etc/modprobe.d/usb-storage.conf missing"
+
+    # ── 1.5 Process hardening ────────────────────────────────────────────────
+    - name: Assert core dump limits file exists
+      ansible.builtin.stat:
+        path: /etc/security/limits.d/99-cis-coredump.conf
+      register: coredump_conf
+    - ansible.builtin.assert:
+        that: coredump_conf.stat.exists
+        fail_msg: "CIS 1.5.1: /etc/security/limits.d/99-cis-coredump.conf missing"
+
+    - name: Assert sysctl ASLR file exists
+      ansible.builtin.stat:
+        path: /etc/sysctl.d/99-cis-aslr.conf
+      register: aslr_conf
+    - ansible.builtin.assert:
+        that: aslr_conf.stat.exists
+        fail_msg: "CIS 1.5.2: /etc/sysctl.d/99-cis-aslr.conf missing"
+
+    - name: Slurp ASLR sysctl config
+      ansible.builtin.slurp:
+        src: /etc/sysctl.d/99-cis-aslr.conf
+      register: aslr_content
+    - ansible.builtin.assert:
+        that: "'kernel.randomize_va_space = 2' in (aslr_content.content | b64decode)"
+        fail_msg: "CIS 1.5.2: ASLR not set to 2"
+
+    # ── 1.7 Warning banners ──────────────────────────────────────────────────
+    - name: Assert /etc/issue exists and contains warning
+      ansible.builtin.slurp:
+        src: /etc/issue
+      register: issue_content
+    - ansible.builtin.assert:
+        that: "'AUTHORIZED USE ONLY' in (issue_content.content | b64decode)"
+        fail_msg: "CIS 1.7.2: /etc/issue does not contain authorization warning"
+
+    - name: Assert /etc/issue.net exists and contains warning
+      ansible.builtin.slurp:
+        src: /etc/issue.net
+      register: issue_net_content
+    - ansible.builtin.assert:
+        that: "'AUTHORIZED USE ONLY' in (issue_net_content.content | b64decode)"
+        fail_msg: "CIS 1.7.3: /etc/issue.net missing authorization warning"
+
+    # ── 3.4 Uncommon network protocols blacklisted ───────────────────────────
+    - name: Assert DCCP disabled
+      ansible.builtin.stat:
+        path: /etc/modprobe.d/dccp.conf
+      register: dccp_conf
+    - ansible.builtin.assert:
+        that: dccp_conf.stat.exists
+        fail_msg: "CIS 3.4.1: /etc/modprobe.d/dccp.conf missing"
+
+    - name: Assert SCTP disabled
+      ansible.builtin.stat:
+        path: /etc/modprobe.d/sctp.conf
+      register: sctp_conf
+    - ansible.builtin.assert:
+        that: sctp_conf.stat.exists
+        fail_msg: "CIS 3.4.2: /etc/modprobe.d/sctp.conf missing"
+
+    # ── 4 Auditd ─────────────────────────────────────────────────────────────
+    - name: Assert audit baseline rules file deployed
+      ansible.builtin.stat:
+        path: /etc/audit/rules.d/10-cis-baseline.rules
+      register: audit_rules
+    - ansible.builtin.assert:
+        that: audit_rules.stat.exists
+        fail_msg: "CIS 4.1.3: /etc/audit/rules.d/10-cis-baseline.rules missing"
+
+    - name: Assert auditd.conf has correct max_log_file_action
+      ansible.builtin.shell:
+        cmd: grep '^max_log_file_action' /etc/audit/auditd.conf
+      register: auditd_max
+      changed_when: false
+    - ansible.builtin.assert:
+        that: auditd_max.stdout != ""
+        fail_msg: "CIS 4.1.2.2: max_log_file_action not set in auditd.conf"
+
+    # ── 5.1 cron ─────────────────────────────────────────────────────────────
+    - name: Assert cron.allow exists and contains only root
+      ansible.builtin.slurp:
+        src: /etc/cron.allow
+      register: cron_allow
+    - ansible.builtin.assert:
+        that: (cron_allow.content | b64decode | trim) == 'root'
+        fail_msg: "CIS 5.1.8: /etc/cron.allow should contain only 'root'"
+
+    # ── 5.4 User accounts ─────────────────────────────────────────────────────
+    - name: Assert session timeout profile script exists
+      ansible.builtin.stat:
+        path: /etc/profile.d/99-cis-tmout.sh
+      register: tmout_script
+    - ansible.builtin.assert:
+        that: tmout_script.stat.exists
+        fail_msg: "CIS 5.4.5: /etc/profile.d/99-cis-tmout.sh missing"
+
+    - name: Assert TMOUT=900 in tmout script
+      ansible.builtin.slurp:
+        src: /etc/profile.d/99-cis-tmout.sh
+      register: tmout_content
+    - ansible.builtin.assert:
+        that: "'TMOUT=900' in (tmout_content.content | b64decode)"
+        fail_msg: "CIS 5.4.5: TMOUT not set to 900"
+
+    # ── 6 File permissions ────────────────────────────────────────────────────
+    - name: Assert /etc/passwd permissions are 0644
+      ansible.builtin.stat:
+        path: /etc/passwd
+      register: passwd_stat
+    - ansible.builtin.assert:
+        that: passwd_stat.stat.mode == '0644'
+        fail_msg: "CIS 6.1.1: /etc/passwd mode is {{ passwd_stat.stat.mode }}, expected 0644"
+
+    # ── Idempotency marker ────────────────────────────────────────────────────
+    # Re-run converge and check nothing changed (molecule --scenario-name default idempotency
+    # does this automatically, but we also check via a dedicated fact).
+    - name: Assert network sysctl config file exists (idempotency marker)
+      ansible.builtin.stat:
+        path: /etc/sysctl.d/99-cis-network.conf
+      register: net_sysctl
+    - ansible.builtin.assert:
+        that: net_sysctl.stat.exists
+        fail_msg: "Network sysctl file missing — idempotency may have broken it"

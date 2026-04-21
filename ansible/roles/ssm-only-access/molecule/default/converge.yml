@@ -1,0 +1,33 @@
+---
+- name: Converge — ssm-only-access
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Install required packages
+      ansible.builtin.dnf:
+        name:
+          - openssh-server
+          - iptables
+          - amazon-ssm-agent
+        state: present
+      failed_when: false   # amazon-ssm-agent may not be in container repo
+      retries: 3
+      delay: 5
+
+    - name: Ensure /etc/tabyaos-release exists
+      ansible.builtin.file:
+        path: /etc/tabyaos-release
+        state: touch
+        mode: "0644"
+
+    - name: Ensure sshd_config exists (role may try to modify it)
+      ansible.builtin.file:
+        path: /etc/ssh/sshd_config
+        state: touch
+        mode: "0600"
+
+  roles:
+    - role: ssm-only-access
+      tags: [ssm]

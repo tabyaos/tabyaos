@@ -1,0 +1,35 @@
+# Managed by Ansible — TabyaOS hardened chrony configuration
+# PCI-DSS v4.0 Req 10.6.1
+
+# Amazon Time Sync Service (available in all AWS regions, no internet required)
+server 169.254.169.123 prefer iburst minpoll 4 maxpoll 4
+
+# AWS NTP servers as fallback
+pool time.aws.com iburst
+
+{% if chrony_additional_servers | default([]) | length > 0 %}
+# Site-specific NTP servers
+{% for srv in chrony_additional_servers %}
+server {{ srv }} iburst
+{% endfor %}
+{% endif %}
+
+# Record the rate at which the system clock gains/loses time
+driftfile /var/lib/chrony/drift
+
+# Allow the system clock to be stepped in the first 3 updates
+makestep 1.0 3
+
+# Enable kernel synchronisation of the real-time clock
+rtcsync
+
+# Logging
+logdir /var/log/chrony
+log measurements statistics tracking
+
+# Disable chronyc commands from non-localhost (hardened)
+cmdport 0
+
+# Source selection
+maxdistance 1.5
+minsources 1

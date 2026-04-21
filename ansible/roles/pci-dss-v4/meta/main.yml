@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: pci_dss_v4
+  author: tabyaos
+  description: PCI-DSS v4.0 node-level controls — Requirements 1,2,5,6,7,8,10,11
+  license: BSL-1.1
+  min_ansible_version: "2.14"
+
+dependencies:
+  - role: cis-l2
+  - role: auditd-pci

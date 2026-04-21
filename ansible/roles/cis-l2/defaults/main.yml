@@ -1,0 +1,122 @@
+---
+# CIS AL2023 L2 — configurable defaults.
+# Override in host_vars / group_vars as needed.
+
+# ── Section 1: Filesystem ────────────────────────────────────────────────────
+cis_l2_disable_cramfs: true       # CIS AL2023 1.1.1.1
+cis_l2_disable_squashfs: true     # CIS AL2023 1.1.1.2
+cis_l2_disable_udf: true          # CIS AL2023 1.1.1.3
+cis_l2_disable_usb_storage: true  # CIS AL2023 1.1.1.4 — L2 addition
+
+# Separate filesystem mounts (set true only if partitioned that way)
+cis_l2_separate_tmp: false        # CIS AL2023 1.1.2.1 — requires /tmp partition
+cis_l2_separate_var: false        # CIS AL2023 1.1.3.1
+cis_l2_separate_var_tmp: false    # CIS AL2023 1.1.4.1
+cis_l2_separate_var_log: false    # CIS AL2023 1.1.5.1
+cis_l2_separate_var_log_audit: false  # CIS AL2023 1.1.6.1
+cis_l2_separate_home: false       # CIS AL2023 1.1.7.1
+
+# /tmp mount options (applied when separate partition or tmpfs)
+cis_l2_tmp_mount_opts: "mode=1777,strictatime,noexec,nodev,nosuid"
+
+# ── Section 2: Services ──────────────────────────────────────────────────────
+cis_l2_remove_xinetd: true        # CIS AL2023 2.1.1
+cis_l2_remove_avahi: true         # CIS AL2023 2.2.1
+cis_l2_remove_cups: true          # CIS AL2023 2.2.4
+cis_l2_remove_dhcp_server: true   # CIS AL2023 2.2.5
+cis_l2_remove_ldap_server: true   # CIS AL2023 2.2.6
+cis_l2_remove_nfs_server: true    # CIS AL2023 2.2.7
+cis_l2_remove_dns_server: true    # CIS AL2023 2.2.8
+cis_l2_remove_ftp_server: true    # CIS AL2023 2.2.9
+cis_l2_remove_http_server: true   # CIS AL2023 2.2.10
+cis_l2_remove_imap_pop3: true     # CIS AL2023 2.2.11
+cis_l2_remove_samba: true         # CIS AL2023 2.2.12
+cis_l2_remove_squid: true         # CIS AL2023 2.2.13
+cis_l2_remove_snmp: true          # CIS AL2023 2.2.14
+cis_l2_remove_nis_server: true    # CIS AL2023 2.2.16
+cis_l2_remove_telnet_server: true # CIS AL2023 2.2.17
+cis_l2_remove_rsh_server: true    # CIS AL2023 2.2.18
+cis_l2_remove_talk_server: true   # CIS AL2023 2.2.19
+cis_l2_remove_tftp_server: true   # CIS AL2023 2.2.20
+cis_l2_remove_rsync_server: true  # CIS AL2023 2.2.21
+
+# Service clients to remove
+cis_l2_remove_nis_client: true    # CIS AL2023 2.3.1
+cis_l2_remove_rsh_client: true    # CIS AL2023 2.3.2
+cis_l2_remove_talk_client: true   # CIS AL2023 2.3.3
+cis_l2_remove_telnet_client: true # CIS AL2023 2.3.4
+cis_l2_remove_ldap_client: false  # CIS AL2023 2.3.5 — may be needed
+
+# ── Section 3: Network ───────────────────────────────────────────────────────
+cis_l2_disable_ipv6: false         # CIS AL2023 3.1.1 — keep unless explicitly unused
+cis_l2_disable_dccp: true          # CIS AL2023 3.4.1
+cis_l2_disable_sctp: true          # CIS AL2023 3.4.2
+cis_l2_disable_rds: true           # CIS AL2023 3.4.3
+cis_l2_disable_tipc: true          # CIS AL2023 3.4.4
+
+# Kernel network parameters
+cis_l2_net_ipv4_forward: 1         # Required for Kubernetes pod networking
+cis_l2_net_rp_filter: 1            # CIS AL2023 3.2.7
+cis_l2_net_accept_source_route: 0  # CIS AL2023 3.2.1
+cis_l2_net_send_redirects: 0       # CIS AL2023 3.2.2
+cis_l2_net_accept_redirects: 0     # CIS AL2023 3.2.3
+cis_l2_net_secure_redirects: 0     # CIS AL2023 3.2.4
+cis_l2_net_log_martians: 1         # CIS AL2023 3.2.5
+cis_l2_net_tcp_syncookies: 1       # CIS AL2023 3.3.1
+cis_l2_net_ignore_broadcasts: 1    # CIS AL2023 3.3.2
+cis_l2_net_ignore_bogus_errors: 1  # CIS AL2023 3.3.3
+
+# ── Section 4: Logging ───────────────────────────────────────────────────────
+cis_l2_auditd_max_log_file_mb: 64          # CIS AL2023 4.1.2.1
+cis_l2_auditd_max_log_file_action: "keep_logs"  # CIS AL2023 4.1.2.2
+cis_l2_auditd_space_left_action: "email"   # CIS AL2023 4.1.2.3
+cis_l2_auditd_admin_space_left_action: "halt"   # CIS AL2023 4.1.2.4
+cis_l2_auditd_action_mail_acct: "root"     # CIS AL2023 4.1.2.5
+cis_l2_auditd_disk_full_action: "halt"     # CIS AL2023 4.1.2.6
+cis_l2_auditd_disk_error_action: "halt"    # CIS AL2023 4.1.2.7
+cis_l2_rsyslog_remote_host: ""             # Set to forward logs to SIEM
+cis_l2_rsyslog_remote_port: 514
+
+# ── Section 5: SSH ───────────────────────────────────────────────────────────
+cis_l2_ssh_port: 22
+cis_l2_ssh_protocol: 2                     # CIS AL2023 5.2.2
+cis_l2_ssh_log_level: "INFO"               # CIS AL2023 5.2.3
+cis_l2_ssh_max_auth_tries: 4               # CIS AL2023 5.2.7
+cis_l2_ssh_ignore_rhosts: "yes"            # CIS AL2023 5.2.8
+cis_l2_ssh_host_based_auth: "no"           # CIS AL2023 5.2.9
+cis_l2_ssh_permit_root_login: "no"         # CIS AL2023 5.2.10
+cis_l2_ssh_permit_empty_passwords: "no"    # CIS AL2023 5.2.11
+cis_l2_ssh_permit_user_environment: "no"   # CIS AL2023 5.2.12
+cis_l2_ssh_client_alive_interval: 300      # CIS AL2023 5.2.16
+cis_l2_ssh_client_alive_count_max: 0       # CIS AL2023 5.2.16
+cis_l2_ssh_login_grace_time: 60            # CIS AL2023 5.2.17
+cis_l2_ssh_banner: /etc/issue.net          # CIS AL2023 5.2.19
+cis_l2_ssh_use_pam: "yes"                  # CIS AL2023 5.2.20
+cis_l2_ssh_allow_tcp_forwarding: "no"      # CIS AL2023 5.2.21
+cis_l2_ssh_max_startups: "10:30:60"        # CIS AL2023 5.2.22
+cis_l2_ssh_max_sessions: 10                # CIS AL2023 5.2.23
+cis_l2_ssh_ciphers:
+  - aes256-gcm@openssh.com
+  - chacha20-poly1305@openssh.com
+  - aes256-ctr
+cis_l2_ssh_macs:
+  - hmac-sha2-512-etm@openssh.com
+  - hmac-sha2-256-etm@openssh.com
+  - hmac-sha2-512
+cis_l2_ssh_kex_algorithms:
+  - curve25519-sha256
+  - curve25519-sha256@libssh.org
+  - diffie-hellman-group14-sha256
+
+# ── Section 5: PAM ───────────────────────────────────────────────────────────
+cis_l2_password_min_days: 1                # CIS AL2023 5.4.1.2
+cis_l2_password_max_days: 365              # CIS AL2023 5.4.1.1
+cis_l2_password_warn_days: 7              # CIS AL2023 5.4.1.3
+cis_l2_password_inactive_days: 30         # CIS AL2023 5.4.1.4
+cis_l2_password_min_length: 14            # CIS AL2023 5.3.1
+cis_l2_password_complexity_minclass: 4    # CIS AL2023 5.3.2
+cis_l2_account_lockout_attempts: 5        # CIS AL2023 5.3.2
+cis_l2_account_lockout_unlock_time: 900   # CIS AL2023 5.3.3
+
+# ── Section 6: System Maintenance ───────────────────────────────────────────
+cis_l2_world_writable_sticky_bit: true    # CIS AL2023 6.1.12

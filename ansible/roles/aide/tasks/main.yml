@@ -1,0 +1,45 @@
+---
+# AIDE — Advanced Intrusion Detection Environment
+# PCI-DSS v4.0 Req 11.3.1 | CIS AL2023 1.3
+
+- name: PCI-DSS v4.0 Req 11.3.1 | CIS AL2023 1.3.1 | Install AIDE
+  ansible.builtin.dnf:
+    name: aide
+    state: present
+  tags: [aide, pci_dss, cis_l2]
+
+- name: CIS AL2023 1.3.1 | Configure AIDE
+  ansible.builtin.template:
+    src: aide.conf.j2
+    dest: /etc/aide.conf
+    owner: root
+    group: root
+    mode: "0600"
+  tags: [aide]
+
+- name: CIS AL2023 1.3.2 | Check if AIDE database exists
+  ansible.builtin.stat:
+    path: /var/lib/aide/aide.db.gz
+  register: aide_db
+  tags: [aide]
+
+- name: CIS AL2023 1.3.2 | Initialise AIDE database
+  ansible.builtin.command: aide --init
+  when: not aide_db.stat.exists
+  changed_when: true
+  tags: [aide]
+
+- name: CIS AL2023 1.3.2 | Rename new AIDE database to active
+  ansible.builtin.command: mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+  when: not aide_db.stat.exists
+  changed_when: true
+  tags: [aide]
+
+- name: CIS AL2023 1.3.3 | Schedule AIDE integrity check via cron
+  ansible.builtin.cron:
+    name: aide-integrity-check
+    minute: "0"
+    hour: "5"
+    job: "/usr/sbin/aide --check 2>&1 | /usr/bin/logger -t aide-check"
+    user: root
+  tags: [aide]

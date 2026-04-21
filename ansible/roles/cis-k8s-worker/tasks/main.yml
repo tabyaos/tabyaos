@@ -1,0 +1,107 @@
+---
+# CIS Kubernetes Benchmark v1.8 — Worker Node section
+# Reference: https://www.cisecurity.org/benchmark/kubernetes
+
+# ── 4.1 Worker Node Configuration Files ──────────────────────────────────────
+
+- name: CIS K8s 4.1.1 | Ensure kubelet service file permissions are 600
+  ansible.builtin.file:
+    path: /etc/systemd/system/kubelet.service
+    owner: root
+    group: root
+    mode: "0600"
+  failed_when: false
+  tags: [cis_k8s, cis_k8s_files]
+
+- name: CIS K8s 4.1.1 | Ensure kubelet.service.d drop-ins are 600
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: "0600"
+  with_fileglob:
+    - /etc/systemd/system/kubelet.service.d/*.conf
+  tags: [cis_k8s, cis_k8s_files]
+
+- name: CIS K8s 4.1.5 | Ensure kubeconfig file permissions are 600
+  ansible.builtin.file:
+    path: /var/lib/kubelet/kubeconfig
+    owner: root
+    group: root
+    mode: "0600"
+  failed_when: false
+  tags: [cis_k8s, cis_k8s_files]
+
+- name: CIS K8s 4.1.7 | Ensure CA file permissions are 600
+  ansible.builtin.file:
+    path: "{{ cis_k8s_client_ca_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  failed_when: false
+  tags: [cis_k8s, cis_k8s_files]
+
+- name: CIS K8s 4.1.9 | Ensure kubelet config file permissions are 600
+  ansible.builtin.file:
+    path: "{{ cis_k8s_kubelet_config_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+  failed_when: false
+  tags: [cis_k8s, cis_k8s_files]
+
+# ── 4.2 Kubelet Configuration ─────────────────────────────────────────────────
+
+- name: CIS K8s 4.2.1-12 | Patch kubelet config with CIS-required settings
+  ansible.builtin.template:
+    src: kubelet-config-patch.json.j2
+    dest: /etc/kubernetes/kubelet-cis-patch.json
+    owner: root
+    group: root
+    mode: "0600"
+  tags: [cis_k8s, cis_k8s_kubelet]
+
+- name: CIS K8s 4.2.1 | Disable anonymous auth in kubelet
+  ansible.builtin.replace:
+    path: "{{ cis_k8s_kubelet_config_path }}"
+    regexp: '"anonymous":\s*\{[^}]*"enabled":\s*true'
+    replace: '"anonymous": {"enabled": false}'
+  failed_when: false
+  tags: [cis_k8s, cis_k8s_kubelet]
+
+- name: CIS K8s 4.2.4 | Disable read-only port
+  ansible.builtin.lineinfile:
+    path: "{{ cis_k8s_kubelet_service_path }}"
+    regexp: '--read-only-port'
+    line: 'Environment="KUBELET_EXTRA_ARGS=--read-only-port=0"'
+  failed_when: false
+  notify: reload systemd
+  tags: [cis_k8s, cis_k8s_kubelet]
+
+- name: CIS K8s 4.2.6 | Enable protect-kernel-defaults
+  ansible.builtin.lineinfile:
+    path: "{{ cis_k8s_kubelet_config_path }}"
+    regexp: '"protectKernelDefaults"'
+    line: '  "protectKernelDefaults": true,'
+  failed_when: false
+  tags: [cis_k8s, cis_k8s_kubelet]
+
+# ── Container runtime (containerd) ────────────────────────────────────────────
+
+- name: CIS K8s | Ensure containerd config directory exists
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: [cis_k8s, cis_k8s_runtime]
+
+- name: CIS K8s | Deploy hardened containerd config
+  ansible.builtin.template:
+    src: containerd-config.toml.j2
+    dest: /etc/containerd/config.toml
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [cis_k8s, cis_k8s_runtime]

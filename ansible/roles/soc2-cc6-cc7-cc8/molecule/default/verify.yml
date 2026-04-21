@@ -1,0 +1,58 @@
+---
+- name: Verify — soc2-cc6-cc7-cc8
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    # ── CC6 ───────────────────────────────────────────────────────────────────
+    - name: Assert /etc/shadow is not world-readable
+      ansible.builtin.stat:
+        path: /etc/shadow
+      register: shadow_stat
+    - ansible.builtin.assert:
+        that: shadow_stat.stat.mode == '0000'
+        fail_msg: "SOC2 CC6.1: /etc/shadow mode is {{ shadow_stat.stat.mode }}, expected 0000"
+
+    # ── CC7 ───────────────────────────────────────────────────────────────────
+    - name: Assert SOC2 CC7 audit rules file deployed
+      ansible.builtin.stat:
+        path: /etc/audit/rules.d/30-soc2-cc7.rules
+      register: soc2_rules
+    - ansible.builtin.assert:
+        that: soc2_rules.stat.exists
+        fail_msg: "SOC2 CC7.2: /etc/audit/rules.d/30-soc2-cc7.rules missing"
+
+    - name: Assert kubectl monitoring in SOC2 rules
+      ansible.builtin.slurp:
+        src: /etc/audit/rules.d/30-soc2-cc7.rules
+      register: soc2_rules_content
+    - ansible.builtin.assert:
+        that:
+          - "'soc2_k8s_admin' in (soc2_rules_content.content | b64decode)"
+          - "'soc2_shell_exec' in (soc2_rules_content.content | b64decode)"
+        fail_msg: "SOC2 CC7.2: expected audit tags missing from SOC2 rules file"
+
+    # ── CC8 ───────────────────────────────────────────────────────────────────
+    - name: Assert change management record file exists
+      ansible.builtin.stat:
+        path: /etc/tabyaos-change-record
+      register: change_record
+    - ansible.builtin.assert:
+        that: change_record.stat.exists
+        fail_msg: "SOC2 CC8.1: /etc/tabyaos-change-record missing"
+
+    - name: Assert change management record has expected content
+      ansible.builtin.slurp:
+        src: /etc/tabyaos-change-record
+      register: change_record_content
+    - ansible.builtin.assert:
+        that:
+          - "'immutable-ami-replacement' in (change_record_content.content | b64decode)"
+          - "'github-actions' in (change_record_content.content | b64decode)"
+        fail_msg: "SOC2 CC8.1: /etc/tabyaos-change-record does not contain expected change process markers"
+
+    - name: Assert /etc/tabyaos-change-record has restricted permissions
+      ansible.builtin.assert:
+        that: change_record.stat.mode == '0644'
+        fail_msg: "SOC2 CC8.1: /etc/tabyaos-change-record mode is {{ change_record.stat.mode }}"

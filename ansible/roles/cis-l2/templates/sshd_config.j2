@@ -1,0 +1,67 @@
+# Managed by Ansible — TabyaOS CIS AL2023 L2 hardening
+# Do not edit manually.
+# CIS AL2023 5.2.*
+
+Port {{ cis_l2_ssh_port }}
+Protocol {{ cis_l2_ssh_protocol }}
+AddressFamily any
+ListenAddress 0.0.0.0
+ListenAddress ::
+
+# CIS AL2023 5.2.x — Host keys
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# CIS AL2023 5.2.x — Ciphers and keying
+Ciphers {{ cis_l2_ssh_ciphers | join(',') }}
+MACs {{ cis_l2_ssh_macs | join(',') }}
+KexAlgorithms {{ cis_l2_ssh_kex_algorithms | join(',') }}
+
+# CIS AL2023 5.2.3 — Logging
+SyslogFacility AUTHPRIV
+LogLevel {{ cis_l2_ssh_log_level }}
+
+# CIS AL2023 5.2.16 — Client alive
+ClientAliveInterval {{ cis_l2_ssh_client_alive_interval }}
+ClientAliveCountMax {{ cis_l2_ssh_client_alive_count_max }}
+
+# CIS AL2023 5.2.17 — Login grace time
+LoginGraceTime {{ cis_l2_ssh_login_grace_time }}
+
+# CIS AL2023 5.2.7
+MaxAuthTries {{ cis_l2_ssh_max_auth_tries }}
+
+# CIS AL2023 5.2.22-23
+MaxStartups {{ cis_l2_ssh_max_startups }}
+MaxSessions {{ cis_l2_ssh_max_sessions }}
+
+# CIS AL2023 5.2.8-12
+IgnoreRhosts {{ cis_l2_ssh_ignore_rhosts }}
+HostbasedAuthentication {{ cis_l2_ssh_host_based_auth }}
+PermitRootLogin {{ cis_l2_ssh_permit_root_login }}
+PermitEmptyPasswords {{ cis_l2_ssh_permit_empty_passwords }}
+PermitUserEnvironment {{ cis_l2_ssh_permit_user_environment }}
+
+# CIS AL2023 5.2.21
+AllowTcpForwarding {{ cis_l2_ssh_allow_tcp_forwarding }}
+X11Forwarding no
+AllowAgentForwarding no
+
+# Authentication
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+PasswordAuthentication no
+ChallengeResponseAuthentication no
+KerberosAuthentication no
+GSSAPIAuthentication no
+UsePAM {{ cis_l2_ssh_use_pam }}
+
+# CIS AL2023 5.2.19 — Warning banner
+Banner {{ cis_l2_ssh_banner }}
+
+# Subsystems
+Subsystem sftp /usr/lib/openssh/sftp-server -f AUTHPRIV -l INFO
+
+# Restrict to ec2-user for EKS node operations
+AllowUsers ec2-user

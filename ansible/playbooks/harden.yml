@@ -1,0 +1,107 @@
+---
+# TabyaOS — main hardening playbook
+# Applies to: EKS worker nodes, KVM VMs, bare-metal hosts running AL2023
+#
+# Usage:
+#   ansible-playbook ansible/playbooks/harden.yml \
+#     -i <inventory> \
+#     --tags cis_l2,cis_k8s        # apply only CIS controls
+#     --tags pci_dss               # apply PCI-DSS overlay only
+#     --skip-tags fips             # skip FIPS (requires reboot)
+#
+# Profiles (set via extra vars):
+#   -e "tabyaos_profile=cis_only"     — CIS L2 + K8s only
+#   -e "tabyaos_profile=pci_dss"      — full PCI-DSS stack
+#   -e "tabyaos_profile=soc2"         — full SOC 2 stack
+#   -e "tabyaos_profile=full"         — everything (default)
+
+- name: TabyaOS | Harden AL2023 Kubernetes worker node
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    tabyaos_profile: full
+
+  pre_tasks:
+    - name: Verify target OS is Amazon Linux 2023
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Amazon"
+          - ansible_distribution_major_version | int >= 2023
+        fail_msg: "TabyaOS hardening is tested on Amazon Linux 2023 only. Got: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+        success_msg: "OS check passed: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      tags: [always]
+
+    - name: Record hardening start time
+      ansible.builtin.set_fact:
+        tabyaos_harden_start: "{{ ansible_date_time.iso8601 }}"
+      tags: [always]
+
+  roles:
+    # 1. CIS AL2023 Level 2 baseline (always applied)
+    - role: cis-l2
+      tags: [cis_l2]
+
+    # 2. CIS Kubernetes Benchmark — Worker Node section
+    - role: cis-k8s-worker
+      tags: [cis_k8s]
+
+    # 3. Secure time synchronisation
+    - role: chrony-hardened
+      tags: [chrony, pci_dss, cis_l2]
+
+    # 4. AIDE file integrity monitoring
+    - role: aide
+      tags: [aide, pci_dss]
+
+    # 5. PCI-DSS v4.0 audit rules
+    - role: auditd-pci
+      tags: [auditd, pci_dss]
+
+    # 6. PCI-DSS v4.0 controls overlay
+    - role: pci-dss-v4
+      when: tabyaos_profile in ['pci_dss', 'full']
+      tags: [pci_dss]
+
+    # 7. SOC 2 Type II controls overlay
+    - role: soc2-cc6-cc7-cc8
+      when: tabyaos_profile in ['soc2', 'full']
+      tags: [soc2]
+
+    # 8. FIPS mode (optional — requires reboot to take effect)
+    - role: fips-mode
+      when: tabyaos_fips_enabled | default(false) | bool
+      tags: [fips]
+
+    # 9. SSM-only access (disable SSH) — apply last so SSH stays open during hardening
+    - role: ssm-only-access
+      when: tabyaos_ssm_only | default(false) | bool
+      tags: [ssm]
+
+  post_tasks:
+    - name: Write hardening completion record
+      ansible.builtin.lineinfile:
+        path: /etc/tabyaos-release
+        line: "HardenedAt={{ tabyaos_harden_start }}"
+      tags: [always]
+
+    - name: Write applied profile
+      ansible.builtin.lineinfile:
+        path: /etc/tabyaos-release
+        line: "Profile={{ tabyaos_profile }}"
+      tags: [always]
+
+    - name: Hardening complete — print summary
+      ansible.builtin.debug:
+        msg:
+          - "=== TabyaOS hardening complete ==="
+          - "Profile    : {{ tabyaos_profile }}"
+          - "FIPS mode  : {{ tabyaos_fips_enabled | default(false) }}"
+          - "SSM-only   : {{ tabyaos_ssm_only | default(false) }}"
+          - "Started at : {{ tabyaos_harden_start }}"
+          - "Finished at: {{ ansible_date_time.iso8601 }}"
+          - ""
+          - "Next: run kube-bench to capture post-hardening score:"
+          - "  ./tests/kube-bench/run-node.sh --json --output tests/kube-bench/baseline/after-hardening.json"
+      tags: [always]

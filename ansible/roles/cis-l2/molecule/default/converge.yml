@@ -1,0 +1,60 @@
+---
+- name: Converge — cis-l2
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    # ── Docker-incompatible task overrides ───────────────────────────────────
+    # SELinux cannot be enforced inside a Docker container.
+    # These variables prevent the role from trying to set SELinux enforcing
+    # or rebuild initramfs (operations that would fail in a container).
+    ansible_selinux: {status: disabled}
+
+    # Keep /tmp as tmpfs (already handled by container tmpfs mount).
+    cis_l2_separate_tmp: false
+
+    # Separate partitions don't exist in the test container.
+    cis_l2_separate_var: false
+    cis_l2_separate_var_tmp: false
+    cis_l2_separate_var_log: false
+    cis_l2_separate_var_log_audit: false
+    cis_l2_separate_home: false
+
+    # rsyslog remote host — leave empty in unit test.
+    cis_l2_rsyslog_remote_host: ""
+
+  pre_tasks:
+    - name: Install packages required by the role
+      ansible.builtin.dnf:
+        name:
+          - audit
+          - rsyslog
+          - logrotate
+          - shadow-utils
+          - openssh-server
+          - openssh-clients
+          - cronie
+          - util-linux
+          - procps-ng
+        state: present
+      retries: 3
+      delay: 5
+
+    - name: Start auditd so lineinfile tasks don't fail
+      ansible.builtin.service:
+        name: auditd
+        state: started
+        enabled: true
+      failed_when: false
+
+    - name: Start rsyslog
+      ansible.builtin.service:
+        name: rsyslog
+        state: started
+        enabled: true
+      failed_when: false
+
+  roles:
+    - role: cis-l2
+      tags: [cis_l2]

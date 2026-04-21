@@ -1,0 +1,148 @@
+name: Build AMI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packer/**'
+      - 'ansible/**'
+      - '.github/workflows/build.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packer/**'
+      - 'ansible/**'
+  workflow_dispatch:
+    inputs:
+      eks_version:
+        description: 'EKS version (e.g. 1.31)'
+        required: false
+        default: '1.31'
+      architecture:
+        description: 'Architecture to build'
+        required: false
+        default: 'both'
+        type: choice
+        options: [both, x86_64, arm64]
+
+permissions:
+  id-token: write   # OIDC token for keyless Cosign signing
+  contents: read
+  packages: write
+
+env:
+  PACKER_VERSION: "1.11.2"
+  AWS_REGION: us-east-1
+
+jobs:
+  validate:
+    name: Validate Packer configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Packer fmt check
+        run: packer fmt -recursive -check packer/
+
+      - name: Packer init
+        run: packer init packer/al2023
+
+      - name: Packer validate (syntax only, no AWS calls)
+        run: |
+          packer validate \
+            -var aws_region=us-east-1 \
+            -var subnet_id=subnet-placeholder \
+            -evaluate-datasources=false \
+            packer/al2023
+        env:
+          # Dummy credentials for validation-only step
+          AWS_ACCESS_KEY_ID: AKIAIOSFODNN7EXAMPLE
+          AWS_SECRET_ACCESS_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+  lint-ansible:
+    name: Lint Ansible roles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ansible-lint
+        run: pip install ansible-lint
+
+      - name: Run ansible-lint
+        run: ansible-lint ansible/
+
+  build:
+    name: Build AMI (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    needs: [validate, lint-ansible]
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - ${{ github.event.inputs.architecture == 'x86_64' && 'x86_64' || '' }}
+          - ${{ github.event.inputs.architecture == 'arm64' && 'arm64' || '' }}
+          - ${{ (github.event.inputs.architecture == 'both' || github.event.inputs.architecture == '') && 'x86_64' || '' }}
+          - ${{ (github.event.inputs.architecture == 'both' || github.event.inputs.architecture == '') && 'arm64' || '' }}
+        exclude:
+          - arch: ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PACKER_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: tabyaos-packer-build
+
+      - name: Install Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Packer init
+        run: packer init packer/al2023
+
+      - name: Build AMI (${{ matrix.arch }})
+        id: packer_build
+        run: |
+          packer build \
+            -only="amazon-ebs.al2023-${{ matrix.arch }}" \
+            -var eks_version=${{ github.event.inputs.eks_version || '1.31' }} \
+            -var aws_region=${{ env.AWS_REGION }} \
+            -var-file=packer/al2023/vars/al2023.auto.pkrvars.hcl \
+            -machine-readable \
+            packer/al2023 | tee /tmp/packer-output.txt
+
+          # Extract AMI ID from packer output
+          AMI_ID=$(grep 'artifact,0,id' /tmp/packer-output.txt | cut -d, -f6 | cut -d: -f2)
+          echo "ami_id=${AMI_ID}" >> "$GITHUB_OUTPUT"
+          echo "AMI ID: ${AMI_ID}"
+
+      - name: Tag AMI with git SHA
+        if: steps.packer_build.outputs.ami_id != ''
+        run: |
+          aws ec2 create-tags \
+            --resources "${{ steps.packer_build.outputs.ami_id }}" \
+            --tags \
+              Key=GitSHA,Value=${{ github.sha }} \
+              Key=Branch,Value=${{ github.ref_name }} \
+              Key=BuildURL,Value=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Save AMI ID artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ami-id-${{ matrix.arch }}
+          path: /tmp/packer-output.txt
+          retention-days: 30

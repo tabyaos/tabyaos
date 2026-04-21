@@ -1,0 +1,38 @@
+---
+- name: Verify — cis-k8s-worker
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Assert /etc/containerd directory exists
+      ansible.builtin.stat:
+        path: /etc/containerd
+      register: containerd_dir
+    - ansible.builtin.assert:
+        that: containerd_dir.stat.isdir
+        fail_msg: "/etc/containerd directory missing"
+
+    - name: Assert containerd config.toml deployed
+      ansible.builtin.stat:
+        path: /etc/containerd/config.toml
+      register: containerd_conf
+    - ansible.builtin.assert:
+        that: containerd_conf.stat.exists
+        fail_msg: "CIS K8s: /etc/containerd/config.toml not deployed"
+
+    - name: Assert containerd config uses systemd cgroup
+      ansible.builtin.slurp:
+        src: /etc/containerd/config.toml
+      register: containerd_content
+    - ansible.builtin.assert:
+        that: "'SystemdCgroup = true' in (containerd_content.content | b64decode)"
+        fail_msg: "CIS K8s: containerd SystemdCgroup not enabled"
+
+    - name: Assert mock kubelet config has correct permissions
+      ansible.builtin.stat:
+        path: /tmp/molecule-kubelet-config.json
+      register: kubelet_conf_stat
+    - ansible.builtin.assert:
+        that: kubelet_conf_stat.stat.mode == '0600'
+        fail_msg: "CIS K8s 4.1.9: kubelet config mode is {{ kubelet_conf_stat.stat.mode }}, expected 0600"

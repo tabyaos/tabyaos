@@ -1,0 +1,46 @@
+---
+- name: Converge — soc2-cc6-cc7-cc8
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Install prerequisites
+      ansible.builtin.dnf:
+        name:
+          - audit
+          - rsyslog
+          - shadow-utils
+        state: present
+      retries: 3
+      delay: 5
+
+    - name: Ensure /etc/tabyaos-release exists (normally written by Packer)
+      ansible.builtin.file:
+        path: /etc/tabyaos-release
+        state: touch
+        mode: "0644"
+
+    - name: Ensure /etc/audit/rules.d exists
+      ansible.builtin.file:
+        path: /etc/audit/rules.d
+        state: directory
+        mode: "0750"
+
+    - name: Start auditd
+      ansible.builtin.service:
+        name: auditd
+        state: started
+        enabled: true
+      failed_when: false
+
+    - name: Start rsyslog
+      ansible.builtin.service:
+        name: rsyslog
+        state: started
+        enabled: true
+      failed_when: false
+
+  roles:
+    - role: soc2-cc6-cc7-cc8
+      tags: [soc2]

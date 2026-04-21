@@ -1,0 +1,104 @@
+# ---------- Packer ----------
+packer_cache/
+*.box
+crash.log
+*.log
+manifest.json
+# Ignore local secret overrides but keep the committed defaults.
+vars/local.pkrvars.hcl
+vars/secrets.pkrvars.hcl
+.packer.d/
+# The al2023.auto.pkrvars.hcl files ARE committed (they hold safe defaults).
+
+# ---------- Terraform (if used for test infra) ----------
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.auto.tfvars
+*.auto.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# ---------- Ansible ----------
+*.retry
+.vault_pass
+.ansible/
+collections/
+roles/external/
+
+# ---------- Credentials & secrets ----------
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+*.ppk
+.env
+.env.*
+!.env.example
+aws.config
+credentials
+.aws/
+.gcp/
+.azure/
+
+# ---------- Build output ----------
+dist/
+build/
+output*/
+*.qcow2
+*.raw
+*.iso
+*.tar.zst
+*.tar.xz
+*.img
+
+# ---------- SBOM / attestation (generated, not committed) ----------
+sbom/
+*.sbom.json
+*.spdx.json
+*.cdx.json
+attestations/generated/
+
+# ---------- OS / editor ----------
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.sample.json
+.idea/
+*.iml
+
+# ---------- Python (testing / tooling) ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---------- Node (docs site tooling) ----------
+node_modules/
+.next/
+.docusaurus/
+
+# ---------- Local scratch ----------
+scratch/
+tmp/
+.tmp/

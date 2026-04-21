@@ -1,0 +1,29 @@
+#cloud-config
+# Packer build VM bootstrap — local QEMU builds ONLY.
+# This password is ephemeral: it exists only during the Packer session.
+# The hardened QCOW2 produced by this build disables password auth entirely
+# (sshd removed by ssm-only-access role, or SSH hardened via cis-l2).
+
+users:
+  - name: ec2-user
+    groups: [wheel, adm]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+
+chpasswd:
+  list: |
+    ec2-user:tabyaos-packer-build
+  expire: false
+
+# Enable password SSH so Packer can connect before SSH keys are configured.
+ssh_pwauth: true
+
+# Minimal package bootstrap needed before Ansible provisioning.
+packages:
+  - python3
+  - python3-pip
+
+runcmd:
+  # Signal cloud-init completion so Packer's boot_wait can be shorter.
+  - touch /tmp/cloud-init-done

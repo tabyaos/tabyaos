@@ -1,0 +1,140 @@
+---
+# CIS AL2023 Section 2: Services
+
+# ── 2.1 inetd ────────────────────────────────────────────────────────────────
+
+- name: CIS AL2023 2.1.1 | Remove xinetd
+  ansible.builtin.dnf:
+    name: xinetd
+    state: absent
+  when: cis_l2_remove_xinetd | bool
+
+# ── 2.2 Special Purpose Services ─────────────────────────────────────────────
+
+- name: CIS AL2023 2.2.1 | Remove avahi-daemon
+  ansible.builtin.dnf:
+    name:
+      - avahi
+      - avahi-autoipd
+    state: absent
+  when: cis_l2_remove_avahi | bool
+
+- name: CIS AL2023 2.2.4 | Remove CUPS
+  ansible.builtin.dnf:
+    name: cups
+    state: absent
+  when: cis_l2_remove_cups | bool
+
+- name: CIS AL2023 2.2.5 | Remove DHCP server
+  ansible.builtin.dnf:
+    name: dhcp-server
+    state: absent
+  when: cis_l2_remove_dhcp_server | bool
+
+- name: CIS AL2023 2.2.6 | Remove LDAP server
+  ansible.builtin.dnf:
+    name:
+      - openldap-servers
+      - 389-ds-base
+    state: absent
+  when: cis_l2_remove_ldap_server | bool
+
+- name: CIS AL2023 2.2.7 | Remove NFS server
+  ansible.builtin.dnf:
+    name:
+      - nfs-utils
+      - rpcbind
+    state: absent
+  when: cis_l2_remove_nfs_server | bool
+
+- name: CIS AL2023 2.2.8 | Remove DNS server
+  ansible.builtin.dnf:
+    name: bind
+    state: absent
+  when: cis_l2_remove_dns_server | bool
+
+- name: CIS AL2023 2.2.9 | Remove FTP server
+  ansible.builtin.dnf:
+    name: vsftpd
+    state: absent
+  when: cis_l2_remove_ftp_server | bool
+
+- name: CIS AL2023 2.2.10 | Remove HTTP server
+  ansible.builtin.dnf:
+    name:
+      - httpd
+      - nginx
+    state: absent
+  when: cis_l2_remove_http_server | bool
+
+- name: CIS AL2023 2.2.11 | Remove IMAP/POP3 servers
+  ansible.builtin.dnf:
+    name:
+      - dovecot
+      - cyrus-imapd
+    state: absent
+  when: cis_l2_remove_imap_pop3 | bool
+
+- name: CIS AL2023 2.2.12 | Remove Samba
+  ansible.builtin.dnf:
+    name: samba
+    state: absent
+  when: cis_l2_remove_samba | bool
+
+- name: CIS AL2023 2.2.13 | Remove Squid
+  ansible.builtin.dnf:
+    name: squid
+    state: absent
+  when: cis_l2_remove_squid | bool
+
+- name: CIS AL2023 2.2.14 | Remove SNMP
+  ansible.builtin.dnf:
+    name: net-snmp
+    state: absent
+  when: cis_l2_remove_snmp | bool
+
+- name: CIS AL2023 2.2.15 | Ensure mail transfer agent is configured for local-only
+  ansible.builtin.lineinfile:
+    path: /etc/postfix/main.cf
+    regexp: '^inet_interfaces'
+    line: 'inet_interfaces = loopback-only'
+  failed_when: false
+
+- name: CIS AL2023 2.2.16 | Remove NIS server
+  ansible.builtin.dnf:
+    name: ypserv
+    state: absent
+  when: cis_l2_remove_nis_server | bool
+
+- name: CIS AL2023 2.2.17-20 | Remove legacy server packages
+  ansible.builtin.dnf:
+    name:
+      - telnet-server
+      - rsh-server
+      - talk-server
+      - tftp-server
+    state: absent
+
+- name: CIS AL2023 2.2.21 | Remove rsync server
+  ansible.builtin.dnf:
+    name: rsync-daemon
+    state: absent
+  when: cis_l2_remove_rsync_server | bool
+
+# ── 2.3 Service Clients ───────────────────────────────────────────────────────
+
+- name: CIS AL2023 2.3.1-5 | Remove legacy client packages
+  ansible.builtin.dnf:
+    name: >-
+      {{
+        (['ypbind'] if cis_l2_remove_nis_client else []) +
+        (['rsh'] if cis_l2_remove_rsh_client else []) +
+        (['talk'] if cis_l2_remove_talk_client else []) +
+        (['telnet'] if cis_l2_remove_telnet_client else []) +
+        (['openldap-clients'] if cis_l2_remove_ldap_client else [])
+      }}
+    state: absent
+  when: >-
+    cis_l2_remove_nis_client or cis_l2_remove_rsh_client or
+    cis_l2_remove_talk_client or cis_l2_remove_telnet_client or
+    cis_l2_remove_ldap_client

@@ -1,0 +1,20 @@
+---
+- name: Converge — fips-mode
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    # fips-mode-setup requires kernel modules and /proc/sys access that are not
+    # available in a Docker container. We test that the crypto-policies package
+    # is installed and the command is attempted; the actual kernel-level FIPS
+    # enablement is verified in the QEMU and EKS test layers.
+    - name: Ensure /etc/tabyaos-release exists
+      ansible.builtin.file:
+        path: /etc/tabyaos-release
+        state: touch
+        mode: "0644"
+
+  roles:
+    - role: fips-mode
+      tags: [fips]

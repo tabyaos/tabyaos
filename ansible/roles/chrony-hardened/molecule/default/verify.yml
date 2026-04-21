@@ -1,0 +1,46 @@
+---
+- name: Verify — chrony-hardened
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Assert chrony package is installed
+      ansible.builtin.package_facts:
+        manager: rpm
+    - ansible.builtin.assert:
+        that: "'chrony' in ansible_facts.packages"
+        fail_msg: "PCI Req 10.6.1: chrony package not installed"
+
+    - name: Assert /etc/chrony.conf exists
+      ansible.builtin.stat:
+        path: /etc/chrony.conf
+      register: chrony_conf
+    - ansible.builtin.assert:
+        that: chrony_conf.stat.exists
+        fail_msg: "PCI Req 10.6.1: /etc/chrony.conf missing"
+
+    - name: Slurp chrony config
+      ansible.builtin.slurp:
+        src: /etc/chrony.conf
+      register: chrony_content
+
+    - name: Assert Amazon Time Sync Service configured
+      ansible.builtin.assert:
+        that: "'169.254.169.123' in (chrony_content.content | b64decode)"
+        fail_msg: "PCI Req 10.6.1: Amazon Time Sync Service (169.254.169.123) not in chrony.conf"
+
+    - name: Assert cmdport is disabled
+      ansible.builtin.assert:
+        that: "'cmdport 0' in (chrony_content.content | b64decode)"
+        fail_msg: "CIS: chrony cmdport not disabled (cmdport 0 missing)"
+
+    - name: Assert driftfile configured
+      ansible.builtin.assert:
+        that: "'driftfile' in (chrony_content.content | b64decode)"
+        fail_msg: "chrony driftfile not configured"
+
+    - name: Assert permissions on /etc/chrony.conf
+      ansible.builtin.assert:
+        that: chrony_conf.stat.mode == '0640'
+        fail_msg: "/etc/chrony.conf mode is {{ chrony_conf.stat.mode }}, expected 0640"

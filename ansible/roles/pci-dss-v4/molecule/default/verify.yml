@@ -1,0 +1,66 @@
+---
+- name: Verify — pci-dss-v4
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Assert PCI-DSS sysctl file deployed
+      ansible.builtin.stat:
+        path: /etc/sysctl.d/99-pci-dss.conf
+      register: pci_sysctl
+    - ansible.builtin.assert:
+        that: pci_sysctl.stat.exists
+        fail_msg: "PCI-DSS v4.0 Req 2.2.5: /etc/sysctl.d/99-pci-dss.conf missing"
+
+    - name: Assert dmesg_restrict sysctl set
+      ansible.builtin.slurp:
+        src: /etc/sysctl.d/99-pci-dss.conf
+      register: pci_sysctl_content
+    - ansible.builtin.assert:
+        that:
+          - "'kernel.dmesg_restrict = 1' in (pci_sysctl_content.content | b64decode)"
+          - "'kernel.kptr_restrict = 2' in (pci_sysctl_content.content | b64decode)"
+        fail_msg: "PCI-DSS v4.0 Req 2.2.5: kernel hardening sysctls not set"
+
+    - name: Assert session timeout profile script deployed
+      ansible.builtin.stat:
+        path: /etc/profile.d/99-pci-session-timeout.sh
+      register: session_timeout
+    - ansible.builtin.assert:
+        that: session_timeout.stat.exists
+        fail_msg: "PCI-DSS v4.0 Req 8.2.8: session timeout script missing"
+
+    - name: Assert session timeout is 900 seconds
+      ansible.builtin.slurp:
+        src: /etc/profile.d/99-pci-session-timeout.sh
+      register: session_content
+    - ansible.builtin.assert:
+        that: "'TMOUT=900' in (session_content.content | b64decode)"
+        fail_msg: "PCI-DSS v4.0 Req 8.2.8: TMOUT not set to 900"
+
+    - name: Assert faillock deny is set
+      ansible.builtin.shell:
+        cmd: grep '^deny' /etc/security/faillock.conf
+      register: faillock_deny
+      changed_when: false
+    - ansible.builtin.assert:
+        that: "'10' in faillock_deny.stdout"
+        fail_msg: "PCI-DSS v4.0 Req 8.3.4: faillock deny not set to 10"
+
+    - name: Assert Bluetooth modprobe config deployed
+      ansible.builtin.stat:
+        path: /etc/modprobe.d/bluetooth.conf
+      register: bt_conf
+    - ansible.builtin.assert:
+        that: bt_conf.stat.exists
+        fail_msg: "PCI-DSS v4.0 Req 2.2.4: /etc/modprobe.d/bluetooth.conf missing"
+
+    - name: Assert sudo requires password (no NOPASSWD in sudoers)
+      ansible.builtin.shell:
+        cmd: grep -c 'NOPASSWD' /etc/sudoers || true
+      register: nopasswd_count
+      changed_when: false
+    - ansible.builtin.assert:
+        that: nopasswd_count.stdout | int == 0
+        fail_msg: "PCI-DSS v4.0 Req 7.2.1: NOPASSWD found in sudoers"

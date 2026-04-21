@@ -1,0 +1,40 @@
+---
+- name: Verify — fips-mode
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Assert crypto-policies package installed
+      ansible.builtin.package_facts:
+        manager: rpm
+    - ansible.builtin.assert:
+        that: "'crypto-policies' in ansible_facts.packages"
+        fail_msg: "FIPS: crypto-policies package not installed"
+
+    - name: Assert crypto-policies-scripts installed
+      ansible.builtin.assert:
+        that: "'crypto-policies-scripts' in ansible_facts.packages"
+        fail_msg: "FIPS: crypto-policies-scripts package not installed"
+
+    - name: Assert openssl installed
+      ansible.builtin.assert:
+        that: "'openssl' in ansible_facts.packages"
+        fail_msg: "FIPS: openssl package not installed"
+
+    - name: Assert /etc/tabyaos-release contains FIPS marker
+      ansible.builtin.slurp:
+        src: /etc/tabyaos-release
+      register: tabyaos_release
+    - ansible.builtin.assert:
+        that: "'FIPSMode=enabled-pending-reboot' in (tabyaos_release.content | b64decode)"
+        fail_msg: "FIPS: /etc/tabyaos-release does not contain FIPSMode marker"
+
+    # NOTE: 'fips-mode-setup --check' would show 'inconsistent' in Docker
+    # because kernel FIPS flag cannot be set without reboot. This is expected.
+    # The actual FIPS enablement is validated at the QEMU layer after reboot.
+    - name: Document known Docker limitation (informational)
+      ansible.builtin.debug:
+        msg: >
+          INFO: Kernel-level FIPS validation is skipped in Docker (requires reboot).
+          Verified at QEMU layer: check /proc/sys/crypto/fips_enabled == 1 after reboot.

@@ -8,6 +8,7 @@
     name: crond
     enabled: true
     state: started
+  when: cis_l2_manage_services | bool
 
 - name: CIS AL2023 5.1.2-7 | Set permissions on cron files
   ansible.builtin.file:

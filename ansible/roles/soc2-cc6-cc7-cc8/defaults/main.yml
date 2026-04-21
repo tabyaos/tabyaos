@@ -1,0 +1,2 @@
+---
+soc2_manage_services: true  # set false in Docker/container environments

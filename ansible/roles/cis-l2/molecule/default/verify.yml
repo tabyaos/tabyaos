@@ -44,7 +44,10 @@
         src: /etc/sysctl.d/99-cis-aslr.conf
       register: aslr_content
     - ansible.builtin.assert:
-        that: "'kernel.randomize_va_space = 2' in (aslr_content.content | b64decode)"
+        # sysctl module may write key=value or key = value depending on version
+        that: >-
+          'kernel.randomize_va_space=2' in (aslr_content.content | b64decode) or
+          'kernel.randomize_va_space = 2' in (aslr_content.content | b64decode)
         fail_msg: "CIS 1.5.2: ASLR not set to 2"
 
     # ── 1.7 Warning banners ──────────────────────────────────────────────────

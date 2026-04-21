@@ -24,6 +24,9 @@
     # rsyslog remote host — leave empty in unit test.
     cis_l2_rsyslog_remote_host: ""
 
+    # No systemd in Docker containers — skip service start/enable tasks.
+    cis_l2_manage_services: false
+
   pre_tasks:
     - name: Install packages required by the role
       ansible.builtin.dnf:

@@ -1,0 +1,24 @@
+{
+  "kind": "KubeletConfiguration",
+  "apiVersion": "kubelet.config.k8s.io/v1beta1",
+  "authentication": {
+    "anonymous": {
+      "enabled": {{ cis_k8s_anonymous_auth | lower }}
+    },
+    "webhook": {
+      "enabled": true
+    }
+  },
+  "authorization": {
+    "mode": "{{ cis_k8s_authorization_mode }}"
+  },
+  "protectKernelDefaults": {{ cis_k8s_protect_kernel_defaults | lower }},
+  "makeIPTablesUtilChains": {{ cis_k8s_make_iptables_util_chains | lower }},
+  "eventRecordQPS": {{ cis_k8s_event_qps }},
+  "rotateCertificates": {{ cis_k8s_rotate_certificates | lower }},
+  "tlsMinVersion": "{{ cis_k8s_tls_min_version }}",
+  "tlsCipherSuites": {{ cis_k8s_tls_cipher_suites | to_json }},
+  "streamingConnectionIdleTimeout": "{{ cis_k8s_streaming_connection_idle_timeout }}",
+  "readOnlyPort": {{ cis_k8s_read_only_port }},
+  "clientCAFile": "{{ cis_k8s_client_ca_file }}"
+}

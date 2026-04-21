@@ -1,0 +1,57 @@
+---
+# Bootstrap the amazonlinux:2023 container with packages and directories that
+# exist on a real AL2023 host but are absent from the minimal Docker image.
+# This is a test-infrastructure concern, not a role concern.
+- name: Prepare — bootstrap container
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Install sudo and system packages
+      ansible.builtin.raw: |
+        dnf install -y \
+          sudo kmod procps-ng libselinux pam util-linux \
+          audit rsyslog openssh-server cronie logrotate \
+          shadow-utils python3 2>&1
+      changed_when: false
+
+    - name: Create directories absent from minimal Docker image
+      ansible.builtin.raw: |
+        mkdir -p \
+          /etc/modprobe.d \
+          /etc/audit/rules.d \
+          /etc/sysctl.d \
+          /etc/selinux \
+          /etc/security/limits.d \
+          /etc/profile.d \
+          /etc/cron.d \
+          /etc/cron.daily \
+          /etc/default \
+          /etc/ssh \
+          /boot/grub2 \
+          /etc/kubernetes \
+          /etc/systemd/system/kubelet.service.d \
+          /var/lib/kubelet/pki
+      changed_when: false
+
+    - name: Create minimal /etc/selinux/config
+      ansible.builtin.raw: |
+        [ -f /etc/selinux/config ] || printf 'SELINUX=permissive\nSELINUXTYPE=targeted\n' > /etc/selinux/config
+      changed_when: false
+
+    - name: Create minimal /etc/default/grub
+      ansible.builtin.raw: |
+        [ -f /etc/default/grub ] || printf 'GRUB_CMDLINE_LINUX=""\n' > /etc/default/grub
+      changed_when: false
+
+    - name: Create empty auditd.conf if missing
+      ansible.builtin.raw: |
+        [ -f /etc/audit/auditd.conf ] || touch /etc/audit/auditd.conf
+      changed_when: false
+
+    - name: Generate SSH host keys for sshd_config validation
+      ansible.builtin.raw: ssh-keygen -A 2>&1 || true
+      changed_when: false
+
+    - name: Ensure shadow group exists
+      ansible.builtin.raw: getent group shadow || groupadd shadow
+      changed_when: false

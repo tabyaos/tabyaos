@@ -13,6 +13,7 @@
     name: amazon-ssm-agent
     enabled: true
     state: started
+  when: ssm_manage_services | bool
   tags: [ssm, pci_dss, soc2]
 
 - name: SSM | Disable SSH password authentication (keys only, will be revoked next)
@@ -28,6 +29,7 @@
     name: sshd
     enabled: false
     state: stopped
+  when: ssm_manage_services | bool
   tags: [ssm, pci_dss]
 
 - name: SSM | Block TCP port 22 via iptables
@@ -40,8 +42,8 @@
   tags: [ssm]
 
 - name: SSM | Persist iptables rule
-  ansible.builtin.command: iptables-save > /etc/sysconfig/iptables
-  changed_when: true
+  ansible.builtin.shell: iptables-save > /etc/sysconfig/iptables
+  changed_when: false
   tags: [ssm]
 
 - name: SSM | Write /etc/tabyaos-release SSM marker

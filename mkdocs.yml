@@ -1,0 +1,72 @@
+site_name: TabyaOS Documentation
+site_description: Hardened Kubernetes node OS — pre-configured for PCI-DSS v4.0, SOC 2 Type II, CIS Level 2
+site_url: https://tabya.io/docs
+repo_url: https://github.com/tabyaos/tabyaos
+repo_name: tabyaos/tabyaos
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+  logo: assets/logo.png
+  favicon: assets/favicon.png
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Architecture: architecture.md
+  - Threat Model: threat-model.md
+  - Compliance:
+      - CIS Level 2: compliance/cis-l2.md
+      - PCI-DSS v4.0: compliance/pci-dss-v4.md
+      - SOC 2 Type II: compliance/soc2-type-ii.md
+      - Control Coverage: compliance/coverage-summary.md
+  - Enterprise: enterprise.md
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/tabyaos/tabyaos
+    - icon: fontawesome/solid/globe
+      link: https://tabya.io
+  analytics:
+    provider: google
+    property: !ENV [GOOGLE_ANALYTICS_ID, ""]
+
+copyright: Copyright &copy; 2026 Tabya. Licensed under BSL 1.1.

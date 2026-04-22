@@ -173,38 +173,15 @@ build-molecule-runner:
         -t tabyaos/molecule-runner:latest \
         ci/
 
-# Run all molecule scenarios.
-# Linux/macOS: uses native molecule if available, falls back to Docker runner.
-# Windows: always uses the Docker runner (molecule requires POSIX Python).
-test-molecule: _pull-amazonlinux
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ROLES=$(find ansible/roles -maxdepth 1 -mindepth 1 -type d | sort)
-    if python3 -c "import fcntl" 2>/dev/null; then
-      echo "==> Running molecule natively (Linux/macOS)"
-      echo "${ROLES}" | xargs -P4 -I{} bash -c '
-        role=$(basename {})
-        if [ -f "{}/molecule/default/molecule.yml" ]; then
-          echo "=== molecule: ${role} ==="
-          cd {} && molecule test
-        fi
-      '
-    else
-      echo "==> Running molecule via Docker runner (Windows)"
-      docker run --rm \
+# Run all molecule scenarios sequentially via Docker runner (Windows-safe, avoids Docker network conflicts).
+# Produces a PASS/FAIL summary for each role.
+test-molecule:
+    MSYS_NO_PATHCONV=1 docker run --rm \
+        -v //var/run/docker.sock:/var/run/docker.sock \
         -v "$(pwd):/project" \
-        -v /var/run/docker.sock:/var/run/docker.sock \
-        -e DOCKER_HOST=unix:///var/run/docker.sock \
+        -w /project \
         tabyaos/molecule-runner:latest \
-        "find ansible/roles -maxdepth 1 -mindepth 1 -type d | sort | \
-         xargs -P4 -I{} bash -c '
-           role=\$(basename {})
-           if [ -f \"{}/molecule/default/molecule.yml\" ]; then
-             echo \"=== molecule: \${role} ===\"
-             cd {} && molecule test
-           fi
-         '"
-    fi
+        "bash /project/ci/run-molecule-all.sh"
 
 # Run molecule for a single role (e.g.  just test-molecule-role cis-l2)
 test-molecule-role role:
@@ -281,6 +258,13 @@ for c in data['controls']:
         reqs = c['frameworks']['{{framework}}']
         print(f\"{c['id']}: {c['title']} — {reqs}\")
 "
+
+# Generate compliance documentation from control-mappings.yaml
+# Outputs: compliance/generated/by-framework/, by-role/, coverage-summary.md
+gen-docs:
+    python3 scripts/gen-compliance-docs.py \
+        --mappings compliance/control-mappings.yaml \
+        --output-dir compliance/generated
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Private helpers

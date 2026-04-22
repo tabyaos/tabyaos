@@ -4,6 +4,11 @@
   become: true
   gather_facts: true
 
+  vars:
+    soc2_manage_services: false  # No systemd in Docker
+    # cis-l2, auditd-pci, and aide are dependencies; disable systemd in Docker.
+    cis_l2_manage_services: false
+
   pre_tasks:
     - name: Install prerequisites
       ansible.builtin.dnf:
@@ -16,9 +21,30 @@
       delay: 5
 
     - name: Ensure /etc/tabyaos-release exists (normally written by Packer)
+      ansible.builtin.copy:
+        dest: /etc/tabyaos-release
+        content: ""
+        force: false
+        mode: "0644"
+
+    - name: Ensure /etc/pam.d exists with sshd stub
       ansible.builtin.file:
-        path: /etc/tabyaos-release
-        state: touch
+        path: /etc/pam.d
+        state: directory
+        mode: "0755"
+
+    - name: Ensure /etc/pam.d/sshd exists for lineinfile tasks
+      ansible.builtin.copy:
+        dest: /etc/pam.d/sshd
+        content: "# pam sshd\n"
+        force: false
+        mode: "0644"
+
+    - name: Ensure /etc/rsyslog.conf exists for lineinfile tasks
+      ansible.builtin.copy:
+        dest: /etc/rsyslog.conf
+        content: "# rsyslog config\n# Please consider using logging properly\n"
+        force: false
         mode: "0644"
 
     - name: Ensure /etc/audit/rules.d exists

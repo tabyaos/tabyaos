@@ -5,31 +5,81 @@
   gather_facts: false
 
   tasks:
-    - name: Assert /etc/containerd directory exists
+    - name: Assert /etc/containerd directory exists with correct permissions
       ansible.builtin.stat:
         path: /etc/containerd
       register: containerd_dir
     - ansible.builtin.assert:
-        that: containerd_dir.stat.isdir
-        fail_msg: "/etc/containerd directory missing"
+        that:
+          - containerd_dir.stat.isdir
+          - containerd_dir.stat.mode == '0755'
+          - containerd_dir.stat.uid == 0
+        fail_msg: "/etc/containerd directory missing or wrong permissions"
 
-    - name: Assert containerd config.toml deployed
+    - name: Assert containerd config.toml deployed with correct permissions
       ansible.builtin.stat:
         path: /etc/containerd/config.toml
       register: containerd_conf
     - ansible.builtin.assert:
-        that: containerd_conf.stat.exists
-        fail_msg: "CIS K8s: /etc/containerd/config.toml not deployed"
+        that:
+          - containerd_conf.stat.exists
+          - containerd_conf.stat.mode == '0644'
+          - containerd_conf.stat.uid == 0
+        fail_msg: "CIS K8s: /etc/containerd/config.toml not deployed or wrong permissions"
 
-    - name: Assert containerd config uses systemd cgroup
+    - name: Slurp containerd config
       ansible.builtin.slurp:
         src: /etc/containerd/config.toml
       register: containerd_content
-    - ansible.builtin.assert:
-        that: "'SystemdCgroup = true' in (containerd_content.content | b64decode)"
-        fail_msg: "CIS K8s: containerd SystemdCgroup not enabled"
 
-    - name: Assert mock kubelet config has correct permissions
+    - name: Assert containerd config uses systemd cgroup driver
+      ansible.builtin.assert:
+        that: "'SystemdCgroup = true' in (containerd_content.content | b64decode)"
+        fail_msg: "CIS K8s: containerd SystemdCgroup not enabled — required for kubelet cgroup consistency"
+
+    - name: Assert kubelet CIS patch config deployed
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet-cis-patch.json
+      register: kubelet_patch
+    - ansible.builtin.assert:
+        that:
+          - kubelet_patch.stat.exists
+          - kubelet_patch.stat.mode == '0600'
+          - kubelet_patch.stat.uid == 0
+        fail_msg: "CIS K8s 4.2.1-12: /etc/kubernetes/kubelet-cis-patch.json not deployed or wrong permissions"
+
+    - name: Slurp kubelet CIS patch
+      ansible.builtin.slurp:
+        src: /etc/kubernetes/kubelet-cis-patch.json
+      register: kubelet_patch_content
+
+    - name: Assert kubelet CIS patch disables anonymous auth (CIS K8s 4.2.1)
+      ansible.builtin.assert:
+        that: >-
+          '"enabled": false' in (kubelet_patch_content.content | b64decode) or
+          '"enabled":false' in (kubelet_patch_content.content | b64decode)
+        fail_msg: "CIS K8s 4.2.1: anonymous auth not disabled in kubelet-cis-patch.json"
+
+    - name: Assert kubelet CIS patch sets readOnlyPort 0 (CIS K8s 4.2.4)
+      ansible.builtin.assert:
+        that: >-
+          '"readOnlyPort": 0' in (kubelet_patch_content.content | b64decode) or
+          '"readOnlyPort":0' in (kubelet_patch_content.content | b64decode)
+        fail_msg: "CIS K8s 4.2.4: readOnlyPort not set to 0 in kubelet-cis-patch.json"
+
+    - name: Assert kubelet CIS patch enables protectKernelDefaults (CIS K8s 4.2.6)
+      ansible.builtin.assert:
+        that: >-
+          '"protectKernelDefaults": true' in (kubelet_patch_content.content | b64decode) or
+          '"protectKernelDefaults":true' in (kubelet_patch_content.content | b64decode)
+        fail_msg: "CIS K8s 4.2.6: protectKernelDefaults not set to true in kubelet-cis-patch.json"
+
+    - name: Assert kubelet CIS patch sets TLS minimum version (CIS K8s 4.2.12)
+      ansible.builtin.assert:
+        that: "'VersionTLS12' in (kubelet_patch_content.content | b64decode)"
+        fail_msg: "CIS K8s 4.2.12: TLS minimum version not set to VersionTLS12"
+
+    - name: Assert mock kubelet config has correct permissions (CIS K8s 4.1.9)
       ansible.builtin.stat:
         path: /tmp/molecule-kubelet-config.json
       register: kubelet_conf_stat

@@ -8,16 +8,10 @@ driver:
 platforms:
   - name: tabyaos-cis-l2
     image: amazonlinux:2023
-    # systemd requires privileged mode and cgroup mount.
-    command: /sbin/init
+    # amazonlinux:2023 has no systemd; use bash entrypoint, privileged for
+    # sysctl/modprobe writes, capabilities for auditctl operations.
     privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    tmpfs:
-      - /run
-      - /tmp
     pre_build_image: true
-    # Simulate common node packages being present.
     networks:
       - name: molecule
 
@@ -26,7 +20,7 @@ provisioner:
   config_options:
     defaults:
       interpreter_python: auto_silent
-      stdout_callback: yaml
+      stdout_callback: default
   ansible_args:
     - --diff
 

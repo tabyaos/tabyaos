@@ -13,6 +13,12 @@
     pci_dss_time_sync_server: ""
     # Skip inactive-account chage commands (no real users).
     pci_dss_inactive_accounts: []
+    # No systemd in Docker containers.
+    pci_dss_manage_services: false
+    # cis-l2 and auditd-pci are dependencies; disable systemd in Docker.
+    cis_l2_manage_services: false
+    # Align cis-l2 lockout attempts with pci-dss value to avoid faillock.conf conflict.
+    cis_l2_account_lockout_attempts: 10
 
   pre_tasks:
     - name: Install prerequisites
@@ -28,9 +34,10 @@
       delay: 5
 
     - name: Create /etc/security/faillock.conf if absent
-      ansible.builtin.file:
-        path: /etc/security/faillock.conf
-        state: touch
+      ansible.builtin.copy:
+        dest: /etc/security/faillock.conf
+        content: ""
+        force: false
         mode: "0644"
 
     - name: Create /etc/sudoers (minimal, for lineinfile tests)
@@ -39,6 +46,7 @@
         content: |
           root ALL=(ALL) ALL
           %wheel ALL=(ALL) ALL
+        force: false
         mode: "0440"
         validate: '/usr/sbin/visudo -cf %s'
       failed_when: false

@@ -58,7 +58,7 @@
     name: clamd@scan
     enabled: true
     state: started
-  when: pci_dss_install_antimalware | bool
+  when: pci_dss_install_antimalware | bool and pci_dss_manage_services | bool
   tags: [pci_dss, pci_req5]
 
 - name: PCI-DSS v4.0 Req 5.2.1 | Schedule daily freshclam update
@@ -90,6 +90,7 @@
     - httpd
     - nginx
   failed_when: false
+  when: pci_dss_manage_services | bool
   tags: [pci_dss, pci_req6]
 
 # ── Requirement 7 — Restrict access ──────────────────────────────────────────
@@ -143,6 +144,7 @@
     name: chronyd
     enabled: true
     state: started
+  when: pci_dss_manage_services | bool
   tags: [pci_dss, pci_req10]
 
 - name: PCI-DSS v4.0 Req 10.6.1 | Configure chrony time source (if specified)

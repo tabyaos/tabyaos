@@ -120,3 +120,9 @@ cis_l2_account_lockout_unlock_time: 900   # CIS AL2023 5.3.3
 
 # ── Section 6: System Maintenance ───────────────────────────────────────────
 cis_l2_world_writable_sticky_bit: true    # CIS AL2023 6.1.12
+
+# ── Test surface control ─────────────────────────────────────────────────────
+# Set false in Docker/container environments where systemd is not available.
+# All ansible.builtin.service and ansible.builtin.systemd state tasks are
+# guarded by this flag so molecule tests don't fail on service management.
+cis_l2_manage_services: true

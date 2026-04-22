@@ -10,7 +10,9 @@ gzip_dbout=yes
 
 report_url=file:@@{LOGDIR}/aide.log
 report_url=stdout
-verbose=5
+# verbose=5 is deprecated in AIDE ≥ 0.17; use log_level/report_level instead
+log_level=warning
+report_level=changed_attributes
 
 # Attribute groups
 FIPSR = p+i+n+u+g+s+m+c+acl+selinux+xattrs+sha512

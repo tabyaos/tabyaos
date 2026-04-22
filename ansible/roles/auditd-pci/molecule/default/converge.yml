@@ -21,9 +21,10 @@
         group: root
 
     - name: Ensure audit.log exists for permission tasks
-      ansible.builtin.file:
-        path: /var/log/audit/audit.log
-        state: touch
+      ansible.builtin.copy:
+        content: ""
+        dest: /var/log/audit/audit.log
+        force: false
         mode: "0600"
         owner: root
         group: root

@@ -3,7 +3,15 @@ name: Release
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'   # e.g. v0.1.0
+      - 'v[0-9]+.[0-9]+.[0-9]+'        # e.g. v0.1.0
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'      # e.g. v0.1.0-alpha
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — validate workflow without building or releasing"
+        required: false
+        default: "true"
+        type: boolean
 
 permissions:
   id-token: write
@@ -46,8 +54,9 @@ jobs:
       - name: Packer init
         run: packer init packer/al2023
 
-      - name: Build x86_64 AMI
+      - name: Build x86_64 AMI (skipped in dry-run)
         id: build_x86
+        if: ${{ inputs.dry_run != true }}
         run: |
           packer build \
             -only='amazon-ebs.al2023-x86_64' \
@@ -59,8 +68,16 @@ jobs:
           AMI_X86=$(grep 'artifact,0,id' /tmp/packer-x86.txt | cut -d, -f6 | cut -d: -f2)
           echo "ami_id=${AMI_X86}" >> "$GITHUB_OUTPUT"
 
-      - name: Build arm64 AMI
+      - name: Dry-run placeholder (packer validate only)
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          packer validate packer/al2023
+          echo "DRY RUN: packer validate passed — skipping actual AMI build"
+          echo "ami_id=ami-dryrun-x86" >> "$GITHUB_OUTPUT"
+
+      - name: Build arm64 AMI (skipped in dry-run)
         id: build_arm64
+        if: ${{ inputs.dry_run != true }}
         run: |
           packer build \
             -only='amazon-ebs.al2023-arm64' \
@@ -71,6 +88,10 @@ jobs:
 
           AMI_ARM=$(grep 'artifact,0,id' /tmp/packer-arm64.txt | cut -d, -f6 | cut -d: -f2)
           echo "ami_id=${AMI_ARM}" >> "$GITHUB_OUTPUT"
+
+      - name: Dry-run placeholder arm64
+        if: ${{ inputs.dry_run == true }}
+        run: echo "ami_id=ami-dryrun-arm64" >> "$GITHUB_OUTPUT"
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3

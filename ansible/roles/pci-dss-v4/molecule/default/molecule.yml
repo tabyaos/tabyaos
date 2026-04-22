@@ -1,27 +1,32 @@
 ---
 dependency:
   name: galaxy
+
 driver:
   name: docker
+
 platforms:
   - name: tabyaos-pci-dss-v4
     image: amazonlinux:2023
-    command: /sbin/init
+    # amazonlinux:2023 has no systemd; use bash entrypoint, privileged for
+    # sysctl/modprobe writes, capabilities for auditctl operations.
     privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    tmpfs:
-      - /run
-      - /tmp
     pre_build_image: true
     networks:
       - name: molecule
+
 provisioner:
   name: ansible
   config_options:
     defaults:
       interpreter_python: auto_silent
-      stdout_callback: yaml
-  ansible_args: [--diff]
+      stdout_callback: default
+  ansible_args:
+    - --diff
+
 verifier:
   name: ansible
+
+lint: |
+  set -e
+  ansible-lint

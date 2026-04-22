@@ -26,3 +26,6 @@ pci_dss_time_sync_server: ""                 # Req 10.6 — set to NTP/chrony se
 
 # Req 11 — Testing
 pci_dss_file_integrity_monitoring: true      # Req 11.3 — uses AIDE role
+
+# Test surface control
+pci_dss_manage_services: true  # set false in Docker/container environments

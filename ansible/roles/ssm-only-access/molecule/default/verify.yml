@@ -11,17 +11,35 @@
       register: tabyaos_release
     - ansible.builtin.assert:
         that: "'AccessMethod=ssm-only' in (tabyaos_release.content | b64decode)"
-        fail_msg: "ssm-only-access: /etc/tabyaos-release missing AccessMethod=ssm-only marker"
+        fail_msg: "ssm-only-access: /etc/tabyaos-release missing AccessMethod=ssm-only"
 
-    - name: Assert PasswordAuthentication is disabled in sshd_config
+    - name: Assert PasswordAuthentication disabled in sshd_config
       ansible.builtin.slurp:
         src: /etc/ssh/sshd_config
       register: sshd_config
     - ansible.builtin.assert:
         that: "'PasswordAuthentication no' in (sshd_config.content | b64decode)"
-        fail_msg: "ssm-only-access: PasswordAuthentication not disabled in sshd_config"
+        fail_msg: "ssm-only-access PCI-DSS Req 8.2.1: PasswordAuthentication not disabled"
 
-    - name: Assert amazon-ssm-agent package is present OR service is enabled
+    - name: Assert iptables DROP rule exists for TCP port 22
+      ansible.builtin.shell:
+        cmd: iptables -L INPUT -n --line-numbers 2>/dev/null | grep -E 'DROP.*tcp.*dpt:22' || iptables-save 2>/dev/null | grep -E -- '-A INPUT.*--dport 22.*-j DROP'
+      register: iptables_ssh_block
+      changed_when: false
+      failed_when: false
+    - ansible.builtin.assert:
+        that: iptables_ssh_block.rc == 0
+        fail_msg: "ssm-only-access: iptables DROP rule for TCP port 22 not found"
+
+    - name: Assert /etc/sysconfig/iptables exists (rules persisted)
+      ansible.builtin.stat:
+        path: /etc/sysconfig/iptables
+      register: iptables_persist
+    - ansible.builtin.assert:
+        that: iptables_persist.stat.exists
+        fail_msg: "ssm-only-access: /etc/sysconfig/iptables not written — iptables rules not persisted"
+
+    - name: Assert amazon-ssm-agent package install was attempted
       ansible.builtin.command:
         cmd: systemctl is-enabled amazon-ssm-agent
       register: ssm_enabled
@@ -32,7 +50,7 @@
           INFO: amazon-ssm-agent enabled={{ ssm_enabled.stdout | default('unknown') }}.
           In Docker the package may not be installable; full validation at QEMU/EKS layer.
 
-    - name: Assert sshd is stopped (or not running)
+    - name: Assert sshd is stopped or not present in Docker
       ansible.builtin.command:
         cmd: systemctl is-active sshd
       register: sshd_active

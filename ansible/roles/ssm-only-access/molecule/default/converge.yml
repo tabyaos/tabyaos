@@ -4,6 +4,9 @@
   become: true
   gather_facts: true
 
+  vars:
+    ssm_manage_services: false  # No systemd in Docker
+
   pre_tasks:
     - name: Install required packages
       ansible.builtin.dnf:
@@ -17,15 +20,17 @@
       delay: 5
 
     - name: Ensure /etc/tabyaos-release exists
-      ansible.builtin.file:
-        path: /etc/tabyaos-release
-        state: touch
+      ansible.builtin.copy:
+        dest: /etc/tabyaos-release
+        content: ""
+        force: false
         mode: "0644"
 
     - name: Ensure sshd_config exists (role may try to modify it)
-      ansible.builtin.file:
-        path: /etc/ssh/sshd_config
-        state: touch
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config
+        content: ""
+        force: false
         mode: "0600"
 
   roles:

@@ -59,6 +59,7 @@
     name: auditd
     enabled: true
     state: started
+  when: soc2_manage_services | bool
   tags: [soc2, cc7]
 
 - name: SOC 2 CC7.2 | Monitor system components for anomalies — annotate auditd

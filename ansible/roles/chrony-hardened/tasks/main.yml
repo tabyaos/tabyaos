@@ -29,6 +29,7 @@
     name: chronyd
     enabled: true
     state: started
+  when: chrony_manage_services | bool
   tags: [chrony, pci_dss]
 
 - name: CIS AL2023 | Restrict chrony to loopback for command interface

@@ -6,6 +6,7 @@
 
   vars:
     chrony_additional_servers: []
+    chrony_manage_services: false  # No systemd in Docker
 
   roles:
     - role: chrony-hardened

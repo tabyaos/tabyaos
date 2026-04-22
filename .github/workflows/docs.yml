@@ -1,0 +1,69 @@
+---
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "compliance/**"
+      - "scripts/gen-compliance-docs.py"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install MkDocs and dependencies
+        run: pip install mkdocs-material mkdocs-minify-plugin pyyaml
+
+      - name: Generate compliance docs
+        run: python3 scripts/gen-compliance-docs.py
+
+      - name: Copy compliance docs into docs/
+        run: |
+          mkdir -p docs/compliance
+          # Coverage summary (generated)
+          cp compliance/generated/coverage-summary.md docs/compliance/coverage-summary.md
+          # Human-authored framework deep-dives (named to match mkdocs.yml nav)
+          cp compliance/cis-l2.md      docs/compliance/cis-l2.md
+          cp compliance/pci-dss-v4.md  docs/compliance/pci-dss-v4.md
+          cp compliance/soc2-type-ii.md docs/compliance/soc2-type-ii.md
+
+      - name: Build MkDocs site
+        run: mkdocs build --strict
+
+      - name: Upload pages artefact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -10,37 +10,50 @@
         manager: rpm
     - ansible.builtin.assert:
         that: "'chrony' in ansible_facts.packages"
-        fail_msg: "PCI Req 10.6.1: chrony package not installed"
+        fail_msg: "PCI Req 10.6.1 | CIS AL2023 2.2.1: chrony package not installed"
 
-    - name: Assert /etc/chrony.conf exists
+    - name: Assert /etc/chrony.conf exists and has restricted permissions
       ansible.builtin.stat:
         path: /etc/chrony.conf
       register: chrony_conf
     - ansible.builtin.assert:
-        that: chrony_conf.stat.exists
-        fail_msg: "PCI Req 10.6.1: /etc/chrony.conf missing"
+        that:
+          - chrony_conf.stat.exists
+          - chrony_conf.stat.mode == '0640'
+          - chrony_conf.stat.uid == 0
+        fail_msg: "PCI Req 10.6.1: /etc/chrony.conf missing or wrong permissions (mode={{ chrony_conf.stat.mode | default('?') }})"
 
     - name: Slurp chrony config
       ansible.builtin.slurp:
         src: /etc/chrony.conf
       register: chrony_content
 
-    - name: Assert Amazon Time Sync Service configured
+    - name: Assert Amazon Time Sync Service is configured
       ansible.builtin.assert:
         that: "'169.254.169.123' in (chrony_content.content | b64decode)"
         fail_msg: "PCI Req 10.6.1: Amazon Time Sync Service (169.254.169.123) not in chrony.conf"
 
-    - name: Assert cmdport is disabled
+    - name: Assert time.aws.com is configured
+      ansible.builtin.assert:
+        that: "'time.aws.com' in (chrony_content.content | b64decode)"
+        fail_msg: "PCI Req 10.6.1: time.aws.com not in chrony.conf"
+
+    - name: Assert cmdport is disabled (no management interface exposed)
       ansible.builtin.assert:
         that: "'cmdport 0' in (chrony_content.content | b64decode)"
-        fail_msg: "CIS: chrony cmdport not disabled (cmdport 0 missing)"
+        fail_msg: "CIS AL2023 2.2.1: chrony cmdport 0 not set — management port should be disabled"
 
-    - name: Assert driftfile configured
+    - name: Assert makestep is configured (fast initial sync)
+      ansible.builtin.assert:
+        that: "'makestep' in (chrony_content.content | b64decode)"
+        fail_msg: "CIS: chrony makestep not configured — initial time correction may be slow"
+
+    - name: Assert driftfile is configured
       ansible.builtin.assert:
         that: "'driftfile' in (chrony_content.content | b64decode)"
-        fail_msg: "chrony driftfile not configured"
+        fail_msg: "chrony driftfile not configured — frequency drift will not persist across reboots"
 
-    - name: Assert permissions on /etc/chrony.conf
+    - name: Assert maxdistance is configured (source sanity limit)
       ansible.builtin.assert:
-        that: chrony_conf.stat.mode == '0640'
-        fail_msg: "/etc/chrony.conf mode is {{ chrony_conf.stat.mode }}, expected 0640"
+        that: "'maxdistance' in (chrony_content.content | b64decode)"
+        fail_msg: "chrony maxdistance not configured — upstream time source sanity check missing"

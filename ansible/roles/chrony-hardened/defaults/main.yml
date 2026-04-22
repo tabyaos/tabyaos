@@ -1,0 +1,7 @@
+---
+# NTP servers to use — override in host_vars/group_vars as needed.
+chrony_ntp_servers:
+  - time.aws.com
+  - 169.254.169.123
+
+chrony_manage_services: true  # set false in Docker/container environments

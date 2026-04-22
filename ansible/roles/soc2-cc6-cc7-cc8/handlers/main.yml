@@ -3,8 +3,10 @@
   ansible.builtin.service:
     name: auditd
     state: restarted
+  failed_when: false
 
 - name: restart rsyslog
   ansible.builtin.service:
     name: rsyslog
     state: restarted
+  failed_when: false

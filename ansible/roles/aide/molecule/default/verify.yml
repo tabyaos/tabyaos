@@ -12,29 +12,60 @@
         that: "'aide' in ansible_facts.packages"
         fail_msg: "CIS 1.3.1 | PCI Req 11.3.1: aide package not installed"
 
-    - name: Assert /etc/aide.conf exists
+    - name: Assert /etc/aide.conf exists and has restricted permissions
       ansible.builtin.stat:
         path: /etc/aide.conf
       register: aide_conf
     - ansible.builtin.assert:
-        that: aide_conf.stat.exists
-        fail_msg: "CIS 1.3.1: /etc/aide.conf missing"
+        that:
+          - aide_conf.stat.exists
+          - aide_conf.stat.mode == '0600'
+          - aide_conf.stat.uid == 0
+          - aide_conf.stat.gid == 0
+        fail_msg: "CIS 1.3.1: /etc/aide.conf missing or wrong permissions (mode={{ aide_conf.stat.mode | default('?') }})"
 
-    - name: Assert /etc/aide.conf has restricted permissions
-      ansible.builtin.assert:
-        that: aide_conf.stat.mode == '0600'
-        fail_msg: "CIS 1.3.1: /etc/aide.conf mode is {{ aide_conf.stat.mode }}, expected 0600"
-
-    - name: Assert aide.conf monitors /etc
+    - name: Slurp aide.conf content
       ansible.builtin.slurp:
         src: /etc/aide.conf
       register: aide_conf_content
-    - ansible.builtin.assert:
+
+    - name: Assert aide.conf monitors critical paths
+      ansible.builtin.assert:
         that:
           - "'/etc' in (aide_conf_content.content | b64decode)"
           - "'/boot' in (aide_conf_content.content | b64decode)"
-          - "'sha512' in (aide_conf_content.content | b64decode)"
-        fail_msg: "CIS 1.3.1: aide.conf does not monitor critical paths or missing sha512"
+          - "'/usr/bin' in (aide_conf_content.content | b64decode)"
+          - "'/usr/sbin' in (aide_conf_content.content | b64decode)"
+        fail_msg: "CIS 1.3.1: aide.conf does not monitor all required critical paths"
+
+    - name: Assert aide.conf uses sha512 (FIPS-approved hash)
+      ansible.builtin.assert:
+        that: "'sha512' in (aide_conf_content.content | b64decode)"
+        fail_msg: "CIS 1.3.1 | PCI 11.3.1: aide.conf missing sha512"
+
+    - name: Assert FIPSR attribute group is defined
+      ansible.builtin.assert:
+        that: "'FIPSR' in (aide_conf_content.content | b64decode)"
+        fail_msg: "CIS 1.3.1: FIPSR attribute group not defined in aide.conf"
+
+    - name: Assert volatile paths are excluded
+      ansible.builtin.assert:
+        that:
+          - "'!/proc' in (aide_conf_content.content | b64decode)"
+          - "'!/sys' in (aide_conf_content.content | b64decode)"
+          - "'!/run' in (aide_conf_content.content | b64decode)"
+          - "'!/tmp' in (aide_conf_content.content | b64decode)"
+        fail_msg: "CIS 1.3.1: volatile paths not excluded from AIDE monitoring"
+
+    - name: Assert EKS PKI paths are monitored
+      ansible.builtin.assert:
+        that: "'/var/lib/kubelet/pki' in (aide_conf_content.content | b64decode)"
+        fail_msg: "CIS K8s | PCI 11.3.1: /var/lib/kubelet/pki not monitored by AIDE"
+
+    - name: Assert AIDE database output path configured
+      ansible.builtin.assert:
+        that: "'aide.db.new.gz' in (aide_conf_content.content | b64decode)"
+        fail_msg: "CIS 1.3.1: AIDE database_out not configured"
 
     - name: Assert AIDE cron job is installed
       ansible.builtin.command:

@@ -93,7 +93,7 @@
     name: tmp.mount
     enabled: true
     state: started
-  when: not (cis_l2_separate_tmp | bool)
+  when: not (cis_l2_separate_tmp | bool) and (cis_l2_manage_services | bool)
 
 # ── 1.3 Filesystem Integrity Checking ────────────────────────────────────────
 # (Handled by the aide role — referenced here for completeness)

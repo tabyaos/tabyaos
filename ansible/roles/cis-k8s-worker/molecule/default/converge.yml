@@ -9,6 +9,8 @@
     # Override paths so file tasks don't fail on missing targets.
     cis_k8s_kubelet_config_path: /tmp/molecule-kubelet-config.json
     cis_k8s_kubelet_service_path: /tmp/molecule-kubelet-args.conf
+    # cis-l2 is a dependency of this role; disable systemd management in Docker.
+    cis_l2_manage_services: false
 
   pre_tasks:
     - name: Create mock kubelet config for file-permission tasks
@@ -21,6 +23,7 @@
             "anonymous": {"enabled": true},
             "protectKernelDefaults": false
           }
+        force: false
         mode: "0644"
 
     - name: Create containerd config directory

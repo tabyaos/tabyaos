@@ -2,13 +2,16 @@
 - name: reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
+  failed_when: false
 
 - name: restart kubelet
   ansible.builtin.service:
     name: kubelet
     state: restarted
+  failed_when: false
 
 - name: restart containerd
   ansible.builtin.service:
     name: containerd
     state: restarted
+  failed_when: false

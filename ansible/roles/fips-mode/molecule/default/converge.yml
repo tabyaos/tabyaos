@@ -10,9 +10,10 @@
     # is installed and the command is attempted; the actual kernel-level FIPS
     # enablement is verified in the QEMU and EKS test layers.
     - name: Ensure /etc/tabyaos-release exists
-      ansible.builtin.file:
-        path: /etc/tabyaos-release
-        state: touch
+      ansible.builtin.copy:
+        content: ""
+        dest: /etc/tabyaos-release
+        force: false
         mode: "0644"
 
   roles:

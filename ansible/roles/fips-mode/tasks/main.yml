@@ -19,8 +19,16 @@
     state: present
   tags: [fips]
 
+- name: FIPS | Get current crypto policy
+  ansible.builtin.command: update-crypto-policies --show
+  register: fips_current_policy
+  changed_when: false
+  failed_when: false
+  tags: [fips]
+
 - name: FIPS | Set crypto policy to FIPS
   ansible.builtin.command: update-crypto-policies --set FIPS
+  when: (fips_current_policy.stdout | trim) != 'FIPS'
   changed_when: true
   tags: [fips]
 

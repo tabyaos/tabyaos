@@ -5,50 +5,36 @@
   gather_facts: false
 
   tasks:
-    - name: Assert PCI-DSS sysctl file deployed
+    - name: Assert PCI-DSS sysctl file deployed with correct permissions
       ansible.builtin.stat:
         path: /etc/sysctl.d/99-pci-dss.conf
       register: pci_sysctl
     - ansible.builtin.assert:
-        that: pci_sysctl.stat.exists
+        that:
+          - pci_sysctl.stat.exists
+          - pci_sysctl.stat.uid == 0
         fail_msg: "PCI-DSS v4.0 Req 2.2.5: /etc/sysctl.d/99-pci-dss.conf missing"
 
-    - name: Assert dmesg_restrict sysctl set
+    - name: Slurp PCI sysctl config
       ansible.builtin.slurp:
         src: /etc/sysctl.d/99-pci-dss.conf
       register: pci_sysctl_content
-    - ansible.builtin.assert:
-        that:
-          - "'kernel.dmesg_restrict = 1' in (pci_sysctl_content.content | b64decode)"
-          - "'kernel.kptr_restrict = 2' in (pci_sysctl_content.content | b64decode)"
-        fail_msg: "PCI-DSS v4.0 Req 2.2.5: kernel hardening sysctls not set"
 
-    - name: Assert session timeout profile script deployed
-      ansible.builtin.stat:
-        path: /etc/profile.d/99-pci-session-timeout.sh
-      register: session_timeout
-    - ansible.builtin.assert:
-        that: session_timeout.stat.exists
-        fail_msg: "PCI-DSS v4.0 Req 8.2.8: session timeout script missing"
+    - name: Assert kernel.dmesg_restrict = 1 (PCI-DSS v4.0 Req 2.2.5)
+      ansible.builtin.assert:
+        that: >-
+          'kernel.dmesg_restrict=1' in (pci_sysctl_content.content | b64decode) or
+          'kernel.dmesg_restrict = 1' in (pci_sysctl_content.content | b64decode)
+        fail_msg: "PCI-DSS v4.0 Req 2.2.5: kernel.dmesg_restrict not set to 1"
 
-    - name: Assert session timeout is 900 seconds
-      ansible.builtin.slurp:
-        src: /etc/profile.d/99-pci-session-timeout.sh
-      register: session_content
-    - ansible.builtin.assert:
-        that: "'TMOUT=900' in (session_content.content | b64decode)"
-        fail_msg: "PCI-DSS v4.0 Req 8.2.8: TMOUT not set to 900"
+    - name: Assert kernel.kptr_restrict = 2 (PCI-DSS v4.0 Req 2.2.5)
+      ansible.builtin.assert:
+        that: >-
+          'kernel.kptr_restrict=2' in (pci_sysctl_content.content | b64decode) or
+          'kernel.kptr_restrict = 2' in (pci_sysctl_content.content | b64decode)
+        fail_msg: "PCI-DSS v4.0 Req 2.2.5: kernel.kptr_restrict not set to 2"
 
-    - name: Assert faillock deny is set
-      ansible.builtin.shell:
-        cmd: grep '^deny' /etc/security/faillock.conf
-      register: faillock_deny
-      changed_when: false
-    - ansible.builtin.assert:
-        that: "'10' in faillock_deny.stdout"
-        fail_msg: "PCI-DSS v4.0 Req 8.3.4: faillock deny not set to 10"
-
-    - name: Assert Bluetooth modprobe config deployed
+    - name: Assert Bluetooth modprobe config deployed (PCI-DSS v4.0 Req 2.2.4)
       ansible.builtin.stat:
         path: /etc/modprobe.d/bluetooth.conf
       register: bt_conf
@@ -56,11 +42,60 @@
         that: bt_conf.stat.exists
         fail_msg: "PCI-DSS v4.0 Req 2.2.4: /etc/modprobe.d/bluetooth.conf missing"
 
-    - name: Assert sudo requires password (no NOPASSWD in sudoers)
+    - name: Assert Bluetooth is blacklisted
+      ansible.builtin.slurp:
+        src: /etc/modprobe.d/bluetooth.conf
+      register: bt_content
+    - ansible.builtin.assert:
+        that:
+          - "'blacklist bluetooth' in (bt_content.content | b64decode)"
+          - "'install bluetooth /bin/true' in (bt_content.content | b64decode)"
+        fail_msg: "PCI-DSS v4.0 Req 2.2.4: Bluetooth not properly blacklisted"
+
+    - name: Assert session timeout profile script deployed (PCI-DSS v4.0 Req 8.2.8)
+      ansible.builtin.stat:
+        path: /etc/profile.d/99-pci-session-timeout.sh
+      register: session_timeout
+    - ansible.builtin.assert:
+        that:
+          - session_timeout.stat.exists
+          - session_timeout.stat.mode == '0644'
+          - session_timeout.stat.uid == 0
+        fail_msg: "PCI-DSS v4.0 Req 8.2.8: session timeout profile script missing or wrong permissions"
+
+    - name: Assert TMOUT=900 in session timeout script
+      ansible.builtin.slurp:
+        src: /etc/profile.d/99-pci-session-timeout.sh
+      register: session_content
+    - ansible.builtin.assert:
+        that:
+          - "'TMOUT=900' in (session_content.content | b64decode)"
+          - "'readonly TMOUT' in (session_content.content | b64decode)"
+        fail_msg: "PCI-DSS v4.0 Req 8.2.8: TMOUT not set to 900 or not marked readonly"
+
+    - name: Assert faillock deny = 10 (PCI-DSS v4.0 Req 8.3.4)
       ansible.builtin.shell:
-        cmd: grep -c 'NOPASSWD' /etc/sudoers || true
+        cmd: grep '^deny' /etc/security/faillock.conf
+      register: faillock_deny
+      changed_when: false
+    - ansible.builtin.assert:
+        that: "'10' in faillock_deny.stdout"
+        fail_msg: "PCI-DSS v4.0 Req 8.3.4: faillock deny not set to 10 (got: {{ faillock_deny.stdout }})"
+
+    - name: Assert sudo requires password — no active NOPASSWD in /etc/sudoers (PCI-DSS v4.0 Req 7.2.1)
+      ansible.builtin.shell:
+        cmd: grep -Ec '^[^#]*NOPASSWD' /etc/sudoers || true
       register: nopasswd_count
       changed_when: false
     - ansible.builtin.assert:
         that: nopasswd_count.stdout | int == 0
-        fail_msg: "PCI-DSS v4.0 Req 7.2.1: NOPASSWD found in sudoers"
+        fail_msg: "PCI-DSS v4.0 Req 7.2.1: Active NOPASSWD found in /etc/sudoers (got {{ nopasswd_count.stdout }} lines)"
+
+    - name: Assert sudo logfile configured (PCI-DSS v4.0 Req 7.2.2)
+      ansible.builtin.shell:
+        cmd: grep '^Defaults.*logfile' /etc/sudoers
+      register: sudo_logfile
+      changed_when: false
+    - ansible.builtin.assert:
+        that: "'/var/log/sudo.log' in sudo_logfile.stdout"
+        fail_msg: "PCI-DSS v4.0 Req 7.2.2: sudo logfile not configured in /etc/sudoers"

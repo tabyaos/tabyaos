@@ -5,8 +5,9 @@
   gather_facts: false
 
   tasks:
-    # ── CC6 ───────────────────────────────────────────────────────────────────
-    - name: Assert /etc/shadow is not world-readable
+    # ── CC6 — Logical and Physical Access Controls ────────────────────────────
+
+    - name: Assert /etc/shadow is mode 0000 — not world-readable (SOC2 CC6.1)
       ansible.builtin.stat:
         path: /etc/shadow
       register: shadow_stat
@@ -14,45 +15,99 @@
         that: shadow_stat.stat.mode == '0000'
         fail_msg: "SOC2 CC6.1: /etc/shadow mode is {{ shadow_stat.stat.mode }}, expected 0000"
 
-    # ── CC7 ───────────────────────────────────────────────────────────────────
-    - name: Assert SOC2 CC7 audit rules file deployed
+    - name: Assert accept_redirects sysctl config deployed (SOC2 CC6.6)
+      ansible.builtin.stat:
+        path: /etc/sysctl.d/99-soc2-cc6.conf
+      register: soc2_sysctl
+    - ansible.builtin.assert:
+        that: soc2_sysctl.stat.exists
+        fail_msg: "SOC2 CC6.6: /etc/sysctl.d/99-soc2-cc6.conf not deployed"
+
+    - name: Assert net.ipv4.conf.all.accept_redirects = 0 (SOC2 CC6.6)
+      ansible.builtin.slurp:
+        src: /etc/sysctl.d/99-soc2-cc6.conf
+      register: soc2_sysctl_content
+    - ansible.builtin.assert:
+        that: >-
+          'net.ipv4.conf.all.accept_redirects=0' in (soc2_sysctl_content.content | b64decode) or
+          'net.ipv4.conf.all.accept_redirects = 0' in (soc2_sysctl_content.content | b64decode)
+        fail_msg: "SOC2 CC6.6: net.ipv4.conf.all.accept_redirects not set to 0"
+
+    - name: Assert /etc/pam.d/sshd has lastlog configured (SOC2 CC6.2)
+      ansible.builtin.slurp:
+        src: /etc/pam.d/sshd
+      register: pam_sshd
+    - ansible.builtin.assert:
+        that: "'pam_lastlog' in (pam_sshd.content | b64decode)"
+        fail_msg: "SOC2 CC6.2: pam_lastlog.so not configured in /etc/pam.d/sshd"
+
+    # ── CC7 — System Operations ───────────────────────────────────────────────
+
+    - name: Assert SOC2 CC7 audit rules file deployed with correct permissions (SOC2 CC7.2)
       ansible.builtin.stat:
         path: /etc/audit/rules.d/30-soc2-cc7.rules
       register: soc2_rules
     - ansible.builtin.assert:
-        that: soc2_rules.stat.exists
-        fail_msg: "SOC2 CC7.2: /etc/audit/rules.d/30-soc2-cc7.rules missing"
+        that:
+          - soc2_rules.stat.exists
+          - soc2_rules.stat.mode == '0640'
+          - soc2_rules.stat.uid == 0
+        fail_msg: "SOC2 CC7.2: /etc/audit/rules.d/30-soc2-cc7.rules missing or wrong permissions"
 
-    - name: Assert kubectl monitoring in SOC2 rules
+    - name: Slurp SOC2 audit rules
       ansible.builtin.slurp:
         src: /etc/audit/rules.d/30-soc2-cc7.rules
       register: soc2_rules_content
-    - ansible.builtin.assert:
+
+    - name: Assert SOC2 audit rules monitor kubectl and shell execution
+      ansible.builtin.assert:
         that:
           - "'soc2_k8s_admin' in (soc2_rules_content.content | b64decode)"
           - "'soc2_shell_exec' in (soc2_rules_content.content | b64decode)"
-        fail_msg: "SOC2 CC7.2: expected audit tags missing from SOC2 rules file"
+          - "'soc2_interpreter_exec' in (soc2_rules_content.content | b64decode)"
+        fail_msg: "SOC2 CC7.2: expected audit keys (soc2_k8s_admin, soc2_shell_exec, soc2_interpreter_exec) missing"
 
-    # ── CC8 ───────────────────────────────────────────────────────────────────
-    - name: Assert change management record file exists
+    - name: Assert rsyslog authpriv logging configured (SOC2 CC7.2)
+      ansible.builtin.shell:
+        cmd: grep 'authpriv' /etc/rsyslog.conf
+      register: rsyslog_authpriv
+      changed_when: false
+    - ansible.builtin.assert:
+        that: "'/var/log/secure' in rsyslog_authpriv.stdout"
+        fail_msg: "SOC2 CC7.2: authpriv logging to /var/log/secure not configured in rsyslog.conf"
+
+    - name: Assert /var/log is owned by root (SOC2 CC7.3)
+      ansible.builtin.stat:
+        path: /var/log
+      register: varlog_stat
+    - ansible.builtin.assert:
+        that:
+          - varlog_stat.stat.uid == 0
+          - varlog_stat.stat.gid == 0
+        fail_msg: "SOC2 CC7.3: /var/log not owned by root"
+
+    # ── CC8 — Change Management ───────────────────────────────────────────────
+
+    - name: Assert change management record deployed (SOC2 CC8.1)
       ansible.builtin.stat:
         path: /etc/tabyaos-change-record
       register: change_record
     - ansible.builtin.assert:
-        that: change_record.stat.exists
-        fail_msg: "SOC2 CC8.1: /etc/tabyaos-change-record missing"
+        that:
+          - change_record.stat.exists
+          - change_record.stat.mode == '0644'
+          - change_record.stat.uid == 0
+        fail_msg: "SOC2 CC8.1: /etc/tabyaos-change-record missing or wrong permissions"
 
-    - name: Assert change management record has expected content
+    - name: Slurp change record
       ansible.builtin.slurp:
         src: /etc/tabyaos-change-record
       register: change_record_content
-    - ansible.builtin.assert:
+
+    - name: Assert change record declares immutable-ami-replacement process
+      ansible.builtin.assert:
         that:
           - "'immutable-ami-replacement' in (change_record_content.content | b64decode)"
           - "'github-actions' in (change_record_content.content | b64decode)"
+          - "'BuildPipeline' in (change_record_content.content | b64decode)"
         fail_msg: "SOC2 CC8.1: /etc/tabyaos-change-record does not contain expected change process markers"
-
-    - name: Assert /etc/tabyaos-change-record has restricted permissions
-      ansible.builtin.assert:
-        that: change_record.stat.mode == '0644'
-        fail_msg: "SOC2 CC8.1: /etc/tabyaos-change-record mode is {{ change_record.stat.mode }}"

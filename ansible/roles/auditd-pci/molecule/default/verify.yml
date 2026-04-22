@@ -10,33 +10,69 @@
         path: /etc/audit/rules.d/20-pci-dss.rules
       register: pci_rules
     - ansible.builtin.assert:
-        that: pci_rules.stat.exists
-        fail_msg: "PCI-DSS v4.0 Req 10.2: /etc/audit/rules.d/20-pci-dss.rules missing"
+        that:
+          - pci_rules.stat.exists
+          - pci_rules.stat.mode == '0640'
+          - pci_rules.stat.uid == 0
+        fail_msg: "PCI-DSS v4.0 Req 10.2: /etc/audit/rules.d/20-pci-dss.rules missing or wrong permissions"
 
-    - name: Assert PCI rules contain expected tags
+    - name: Slurp PCI audit rules
       ansible.builtin.slurp:
         src: /etc/audit/rules.d/20-pci-dss.rules
       register: pci_rules_content
-    - ansible.builtin.assert:
+
+    - name: Assert PCI rules contain required audit keys
+      ansible.builtin.assert:
         that:
           - "'pci_chd_access' in (pci_rules_content.content | b64decode)"
           - "'pci_admin' in (pci_rules_content.content | b64decode)"
           - "'pci_modules' in (pci_rules_content.content | b64decode)"
-        fail_msg: "PCI-DSS audit rules missing required key tags"
+          - "'pci_priv_cmd' in (pci_rules_content.content | b64decode)"
+          - "'pci_network' in (pci_rules_content.content | b64decode)"
+        fail_msg: "PCI-DSS v4.0 Req 10.2: required audit key tags missing from 20-pci-dss.rules"
 
-    - name: Assert auditd.conf write_logs is set
+    - name: Assert PCI rules audit privileged commands (Req 10.2.1.5)
+      ansible.builtin.assert:
+        that:
+          - "'-F euid=0' in (pci_rules_content.content | b64decode)"
+          - "'-k pci_priv_cmd' in (pci_rules_content.content | b64decode)"
+        fail_msg: "PCI-DSS v4.0 Req 10.2.1.5: privileged command auditing not configured"
+
+    - name: Assert auditd.conf write_logs is yes
       ansible.builtin.shell:
         cmd: grep '^write_logs' /etc/audit/auditd.conf
       register: write_logs_check
       changed_when: false
     - ansible.builtin.assert:
         that: "'yes' in write_logs_check.stdout"
-        fail_msg: "PCI-DSS v4.0 Req 10.5.1: write_logs not set to yes"
+        fail_msg: "PCI-DSS v4.0 Req 10.5.1: write_logs not set to yes in auditd.conf"
 
-    - name: Assert /var/log/audit is mode 0700
+    - name: Assert auditd.conf log retention configured
+      ansible.builtin.shell:
+        cmd: grep '^max_log_file_action' /etc/audit/auditd.conf
+      register: log_action_check
+      changed_when: false
+    - ansible.builtin.assert:
+        that: log_action_check.stdout | length > 0
+        fail_msg: "PCI-DSS v4.0 Req 10.5.1: max_log_file_action not configured in auditd.conf"
+
+    - name: Assert /var/log/audit has correct permissions
       ansible.builtin.stat:
         path: /var/log/audit
       register: audit_dir_stat
     - ansible.builtin.assert:
-        that: audit_dir_stat.stat.mode == '0700'
-        fail_msg: "PCI-DSS v4.0 Req 10.3.2: /var/log/audit mode is {{ audit_dir_stat.stat.mode }}"
+        that:
+          - audit_dir_stat.stat.mode == '0700'
+          - audit_dir_stat.stat.uid == 0
+          - audit_dir_stat.stat.gid == 0
+        fail_msg: "PCI-DSS v4.0 Req 10.3.2: /var/log/audit has wrong permissions (mode={{ audit_dir_stat.stat.mode }})"
+
+    - name: Assert audit.log has correct permissions
+      ansible.builtin.stat:
+        path: /var/log/audit/audit.log
+      register: audit_log_stat
+    - ansible.builtin.assert:
+        that:
+          - audit_log_stat.stat.mode == '0600'
+          - audit_log_stat.stat.uid == 0
+        fail_msg: "PCI-DSS v4.0 Req 10.3.2: /var/log/audit/audit.log has wrong permissions"

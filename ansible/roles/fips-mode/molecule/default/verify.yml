@@ -5,36 +5,46 @@
   gather_facts: false
 
   tasks:
-    - name: Assert crypto-policies package installed
+    - name: Assert FIPS-required packages are installed
       ansible.builtin.package_facts:
         manager: rpm
     - ansible.builtin.assert:
-        that: "'crypto-policies' in ansible_facts.packages"
-        fail_msg: "FIPS: crypto-policies package not installed"
+        that:
+          - "'crypto-policies' in ansible_facts.packages"
+          - "'crypto-policies-scripts' in ansible_facts.packages"
+          - "'openssl' in ansible_facts.packages"
+        fail_msg: "FIPS: required packages (crypto-policies, crypto-policies-scripts, openssl) not all installed"
 
-    - name: Assert crypto-policies-scripts installed
-      ansible.builtin.assert:
-        that: "'crypto-policies-scripts' in ansible_facts.packages"
-        fail_msg: "FIPS: crypto-policies-scripts package not installed"
+    - name: Assert /etc/crypto-policies/config exists
+      ansible.builtin.stat:
+        path: /etc/crypto-policies/config
+      register: crypto_config
+    - ansible.builtin.assert:
+        that: crypto_config.stat.exists
+        fail_msg: "FIPS: /etc/crypto-policies/config not created by update-crypto-policies"
 
-    - name: Assert openssl installed
-      ansible.builtin.assert:
-        that: "'openssl' in ansible_facts.packages"
-        fail_msg: "FIPS: openssl package not installed"
+    - name: Assert crypto policy config file contains FIPS
+      ansible.builtin.slurp:
+        src: /etc/crypto-policies/config
+      register: crypto_config_content
+    - ansible.builtin.assert:
+        that: "'FIPS' in (crypto_config_content.content | b64decode)"
+        fail_msg: "FIPS: /etc/crypto-policies/config does not contain FIPS policy"
 
-    - name: Assert /etc/tabyaos-release contains FIPS marker
+    - name: Assert /etc/tabyaos-release contains FIPS pending-reboot marker
       ansible.builtin.slurp:
         src: /etc/tabyaos-release
       register: tabyaos_release
     - ansible.builtin.assert:
         that: "'FIPSMode=enabled-pending-reboot' in (tabyaos_release.content | b64decode)"
-        fail_msg: "FIPS: /etc/tabyaos-release does not contain FIPSMode marker"
+        fail_msg: "FIPS: /etc/tabyaos-release missing FIPSMode=enabled-pending-reboot marker"
 
-    # NOTE: 'fips-mode-setup --check' would show 'inconsistent' in Docker
-    # because kernel FIPS flag cannot be set without reboot. This is expected.
-    # The actual FIPS enablement is validated at the QEMU layer after reboot.
-    - name: Document known Docker limitation (informational)
+    # Kernel FIPS enablement requires reboot — only testable at QEMU/EKS layer.
+    # Document what the full validation looks like so it's not forgotten.
+    - name: Document kernel FIPS validation (informational — QEMU/EKS layer only)
       ansible.builtin.debug:
         msg: >
-          INFO: Kernel-level FIPS validation is skipped in Docker (requires reboot).
-          Verified at QEMU layer: check /proc/sys/crypto/fips_enabled == 1 after reboot.
+          INFO: Kernel-level FIPS validated at QEMU layer after reboot.
+          Check: cat /proc/sys/crypto/fips_enabled == 1
+          Check: fips-mode-setup --check output contains 'FIPS mode is enabled'
+          Check: openssl speed -evp aes-256-cbc shows FIPS provider active

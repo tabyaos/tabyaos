@@ -6,11 +6,12 @@ An opinionated, hardened operating system for Kubernetes worker nodes. Ships wit
 
 ## What you get
 
-- Hardened node images in four formats: AMI (AWS), QCOW2 (KVM), ISO (bare-metal), and OCI (container host).
-- Every control is traceable to a named compliance requirement (CIS AL2023, CIS Kubernetes Worker, PCI-DSS v4.0, SOC 2 Trust Service Criteria).
+- **Three base OS targets:** Amazon Linux 2023 (EKS), Debian 12 (on-prem/OpenShift), RHEL 9 (enterprise/FedRAMP).
+- **11 Ansible hardening roles** — all Molecule-tested (converge + idempotence + verify in Docker).
+- **48 controls** mapped across CIS AL2023 L2, CIS Kubernetes v1.8, PCI-DSS v4.0, SOC 2 Type II, NIST 800-53.
+- Every control references its framework requirement (`# CIS AL2023 5.2.3`, `# PCI-DSS v4.0 Req 10.2.1.1`).
 - Cosign-signed releases with CycloneDX SBOMs.
-- kube-bench, inspec, and OpenSCAP test suites in the box.
-- Weekly security-patched builds.
+- kube-bench and OpenSCAP test suites in the box.
 
 ## Why Tabya exists
 
@@ -26,7 +27,7 @@ Producing worker-node compliance evidence for a stock Amazon Linux or Ubuntu K8s
 | 1 | CIS Level 2 baseline (9 Ansible roles, all Molecule-tested) | ✅ Done |
 | 2 | PCI-DSS v4.0 controls + compliance mapping | ✅ Done |
 | 3 | SOC 2 Type II overlay, CI/CD, signed releases, SBOM | ✅ Done |
-| 4 | Debian 12 + RHEL 9 base images | 🔜 Next |
+| 4 | Debian 12 + RHEL 9 base images (11 roles total, all Molecule-tested) | ✅ Done |
 | 5 | Public launch on tabya.io, Show HN | 🔜 Next |
 | 6 | First enterprise support contracts | Month 7–9 |
 | 7 | AWS Marketplace listing (post-LLC) | Month 12–18 |

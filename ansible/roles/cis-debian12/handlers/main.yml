@@ -18,3 +18,9 @@
     state: restarted
   when: cis_debian12_manage_services | default(true)
   failed_when: false
+
+- name: Update GRUB
+  ansible.builtin.command: update-grub
+  when: cis_debian12_manage_services | default(true)
+  failed_when: false
+  changed_when: false

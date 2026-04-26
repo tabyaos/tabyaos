@@ -78,3 +78,45 @@
     - ansible.builtin.assert:
         that: k8s_net.stat.exists
         fail_msg: "CIS Debian12 3.3.4: K8s network sysctl file missing"
+
+    # ── Section 5 ─────────────────────────────────────────────────────────────
+
+    - name: Assert session timeout profile script deployed (CIS Debian12 5.4.5)
+      ansible.builtin.slurp:
+        src: /etc/profile.d/99-cis-debian12-tmout.sh
+      register: tmout_content
+    - ansible.builtin.assert:
+        that:
+          - "'TMOUT=900' in (tmout_content.content | b64decode)"
+          - "'readonly TMOUT' in (tmout_content.content | b64decode)"
+        fail_msg: "CIS Debian12 5.4.5: TMOUT not set or not readonly"
+
+    - name: Assert /etc/cron.allow exists with root only (CIS Debian12 5.6.1)
+      ansible.builtin.slurp:
+        src: /etc/cron.allow
+      register: cron_allow
+    - ansible.builtin.assert:
+        that: (cron_allow.content | b64decode | trim) == 'root'
+        fail_msg: "CIS Debian12 5.6.1: /etc/cron.allow should contain only 'root'"
+
+    # ── Section 6 ─────────────────────────────────────────────────────────────
+
+    - name: Assert /etc/passwd permissions 0644 (CIS Debian12 6.1.1)
+      ansible.builtin.stat:
+        path: /etc/passwd
+      register: passwd_stat
+    - ansible.builtin.assert:
+        that:
+          - passwd_stat.stat.mode == '0644'
+          - passwd_stat.stat.uid == 0
+        fail_msg: "CIS Debian12 6.1.1: /etc/passwd mode {{ passwd_stat.stat.mode }}, expected 0644"
+
+    - name: Assert /etc/group permissions 0644 (CIS Debian12 6.1.3)
+      ansible.builtin.stat:
+        path: /etc/group
+      register: group_stat
+    - ansible.builtin.assert:
+        that:
+          - group_stat.stat.mode == '0644'
+          - group_stat.stat.uid == 0
+        fail_msg: "CIS Debian12 6.1.3: /etc/group mode {{ group_stat.stat.mode }}, expected 0644"

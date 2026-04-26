@@ -1,4 +1,92 @@
 ---
 # CIS Debian Linux 12 — Section 2: Services
-# TODO: implement in Phase G
-# Use: just ai-gen-tasks "CIS Debian12 Section 2: Services controls"
+
+- name: "CIS Debian12 2.1 | Remove avahi-daemon"
+  ansible.builtin.apt:
+    name: avahi-daemon
+    state: absent
+  when: (cis_debian12_remove_avahi | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.2 | Remove cups"
+  ansible.builtin.apt:
+    name: cups
+    state: absent
+  when: (cis_debian12_remove_cups | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.3 | Remove isc-dhcp-server"
+  ansible.builtin.apt:
+    name: isc-dhcp-server
+    state: absent
+  when: (cis_debian12_remove_isc_dhcp_server | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.4 | Remove slapd (LDAP server)"
+  ansible.builtin.apt:
+    name: slapd
+    state: absent
+  when: (cis_debian12_remove_slapd | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.5 | Remove nfs-kernel-server"
+  ansible.builtin.apt:
+    name: nfs-kernel-server
+    state: absent
+  when: (cis_debian12_remove_nfs_server | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.6 | Remove bind9 (DNS server)"
+  ansible.builtin.apt:
+    name: bind9
+    state: absent
+  when: (cis_debian12_remove_bind9 | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.7 | Remove vsftpd (FTP server)"
+  ansible.builtin.apt:
+    name: vsftpd
+    state: absent
+  when: (cis_debian12_remove_vsftpd | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.8 | Remove apache2 (HTTP server)"
+  ansible.builtin.apt:
+    name: apache2
+    state: absent
+  when: (cis_debian12_remove_apache2 | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.9 | Remove dovecot-core (IMAP/POP3)"
+  ansible.builtin.apt:
+    name: dovecot-core
+    state: absent
+  when: (cis_debian12_remove_dovecot | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.10 | Remove samba"
+  ansible.builtin.apt:
+    name: samba
+    state: absent
+  when: (cis_debian12_remove_samba | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.11 | Remove squid (proxy)"
+  ansible.builtin.apt:
+    name: squid
+    state: absent
+  when: (cis_debian12_remove_squid | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.12 | Remove snmpd"
+  ansible.builtin.apt:
+    name: snmpd
+    state: absent
+  when: (cis_debian12_remove_snmpd | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.13 | Remove telnetd"
+  ansible.builtin.apt:
+    name: telnetd
+    state: absent
+  when: (cis_debian12_remove_telnetd | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.14 | Remove rsh-client"
+  ansible.builtin.apt:
+    name: rsh-client
+    state: absent
+  when: (cis_debian12_remove_rsh_client | default(true)) and (cis_debian12_manage_services | default(true))
+
+- name: "CIS Debian12 2.15 | Remove nis"
+  ansible.builtin.apt:
+    name: nis
+    state: absent
+  when: (cis_debian12_remove_nis | default(true)) and (cis_debian12_manage_services | default(true))

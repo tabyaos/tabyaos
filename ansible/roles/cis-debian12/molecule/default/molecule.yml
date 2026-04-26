@@ -21,6 +21,9 @@ provisioner:
       stdout_callback: default
   ansible_args:
     - --diff
+  env:
+    # Debian docker image PATH may omit /usr/bin when entered via docker exec.
+    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 verifier:
   name: ansible

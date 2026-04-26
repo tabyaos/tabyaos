@@ -1,4 +1,131 @@
 ---
 # CIS Debian Linux 12 — Section 5: Access, Authentication and Authorization
-# TODO: implement in Phase G
-# Use: just ai-gen-tasks "CIS Debian12 Section 5: Access, Authentication and Authorization controls"
+
+# ── 5.2 SSH ───────────────────────────────────────────────────────────────────
+
+- name: "CIS Debian12 5.2 | SSH — disable root login"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin'
+    line: 'PermitRootLogin no'
+    create: true
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart ssh
+
+- name: "CIS Debian12 5.2 | SSH — disable password auth"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+  notify: Restart ssh
+
+- name: "CIS Debian12 5.2 | SSH — disable empty passwords"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitEmptyPasswords'
+    line: 'PermitEmptyPasswords no'
+  notify: Restart ssh
+
+- name: "CIS Debian12 5.2 | SSH — set MaxAuthTries"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?MaxAuthTries'
+    line: "MaxAuthTries {{ cis_debian12_ssh_max_auth_tries }}"
+  notify: Restart ssh
+
+- name: "CIS Debian12 5.2 | SSH — set LoginGraceTime"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?LoginGraceTime'
+    line: "LoginGraceTime {{ cis_debian12_ssh_login_grace_time }}"
+  notify: Restart ssh
+
+- name: "CIS Debian12 5.2 | SSH — set ClientAlive timers"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?{{ item.key }}"
+    line: "{{ item.key }} {{ item.val }}"
+  loop:
+    - { key: ClientAliveInterval, val: "{{ cis_debian12_ssh_client_alive_interval }}" }
+    - { key: ClientAliveCountMax, val: "{{ cis_debian12_ssh_client_alive_count_max }}" }
+  notify: Restart ssh
+
+- name: "CIS Debian12 5.2 | SSH — set banner"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?Banner'
+    line: 'Banner /etc/issue.net'
+  notify: Restart ssh
+
+- name: "CIS Debian12 5.2 | SSH — hardened ciphers"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?Ciphers'
+    line: "Ciphers {{ cis_debian12_ssh_ciphers }}"
+  notify: Restart ssh
+
+- name: "CIS Debian12 5.2 | SSH — hardened MACs"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?MACs'
+    line: "MACs {{ cis_debian12_ssh_macs }}"
+  notify: Restart ssh
+
+- name: "CIS Debian12 5.2 | SSH — hardened KexAlgorithms"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?KexAlgorithms'
+    line: "KexAlgorithms {{ cis_debian12_ssh_kex }}"
+  notify: Restart ssh
+
+# ── 5.3 PAM ───────────────────────────────────────────────────────────────────
+
+- name: "CIS Debian12 5.3.2 | PAM — configure faillock in common-auth"
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/common-auth
+    insertbefore: '^auth\s+\[success'
+    line: "auth required pam_faillock.so preauth silent deny={{ cis_debian12_account_lockout_attempts }} unlock_time={{ cis_debian12_account_lockout_time }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS Debian12 5.3.3 | Password quality — pwquality.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: "^#?{{ item.key }}"
+    line: "{{ item.key }} = {{ item.val }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { key: minlen,    val: "{{ cis_debian12_password_minlen }}" }
+    - { key: minclass,  val: "{{ cis_debian12_password_minclass }}" }
+
+# ── 5.4 Session ───────────────────────────────────────────────────────────────
+
+- name: "CIS Debian12 5.4.5 | Session timeout profile script"
+  ansible.builtin.copy:
+    dest: /etc/profile.d/99-cis-debian12-tmout.sh
+    content: |
+      TMOUT={{ cis_debian12_session_timeout }}
+      readonly TMOUT
+      export TMOUT
+    owner: root
+    group: root
+    mode: "0644"
+    force: false
+
+# ── 5.6 Cron ──────────────────────────────────────────────────────────────────
+
+- name: "CIS Debian12 5.6.1 | Restrict cron to root only"
+  ansible.builtin.copy:
+    dest: /etc/cron.allow
+    content: "root\n"
+    owner: root
+    group: root
+    mode: "0600"
+    force: false

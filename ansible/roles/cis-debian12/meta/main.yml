@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  role_name: cis-debian12
+  role_name: cis_debian12
   author: tabyaos
   description: "CIS Debian Linux 12 Benchmark Level 2 hardening"
   license: BSL-1.1

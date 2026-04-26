@@ -4,19 +4,26 @@
   gather_facts: false
 
   tasks:
+    - name: Update apt cache
+      ansible.builtin.raw: apt-get update -qq
+      changed_when: false
+      retries: 3
+      delay: 5
+
     - name: Install Python and base packages
-      ansible.builtin.raw: |
-        apt-get update -qq && \
-        apt-get install -y --no-install-recommends \
-          python3 python3-apt sudo curl procps \
-          libpam-runtime libpam-modules \
-          apparmor apparmor-utils \
-          auditd \
-          chrony \
-          openssh-client openssh-server \
-          libpwquality-tools \
-          modprobe kmod \
-          sysctl 2>/dev/null || true
+      ansible.builtin.raw: >-
+        apt-get install -y --no-install-recommends
+        python3 python3-apt sudo curl procps
+        libpam-runtime libpam-modules
+        libpwquality-tools kmod
+      changed_when: false
+      retries: 3
+      delay: 5
+
+    - name: Install optional packages (ignore failures — not all present in slim)
+      ansible.builtin.raw: >-
+        apt-get install -y --no-install-recommends
+        openssh-client openssh-server auditd chrony 2>/dev/null || true
       changed_when: false
 
     - name: Create required directories

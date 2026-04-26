@@ -181,7 +181,7 @@ test-molecule:
         -v "$(pwd):/project" \
         -w /project \
         tabyaos/molecule-runner:latest \
-        "bash /project/ci/run-molecule-all.sh"
+        "sed 's/\r//' /project/ci/run-molecule-all.sh | bash"
 
 # Run molecule for a single role (e.g.  just test-molecule-role cis-l2)
 test-molecule-role role:

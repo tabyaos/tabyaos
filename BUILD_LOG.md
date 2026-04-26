@@ -122,7 +122,18 @@ New `justfile` target: `just gen-docs`
 
 **Target:** ≥95% PASS rate on CIS Kubernetes Benchmark worker node section.
 
-_Pending EKS/kind layer testing. kind binary not installed on workstation._
+**Date:** 2026-04-26
+
+### Local testing status
+
+kind v0.25.0 added to molecule-runner image. Cluster creation fails on Docker Desktop (Windows) with `required cgroups disabled` — kubelet cannot access the cgroup hierarchy inside nested Docker containers. This is a known Docker Desktop limitation, not a TabyaOS bug.
+
+**Workaround options:**
+- Run via GitHub Actions CI — `test.yml` `kind-smoke` job runs on `ubuntu-latest` where kind works correctly.
+- Replace kind with **k3d** locally — k3d (k3s in Docker) does not require cgroup nesting. Target: `just test-kind` updated to use k3d.
+
+### CI status
+`test.yml` `kind-smoke` job is defined and will run on every PR against `main` (Linux runner). kube-bench results are uploaded as artifacts. Phase D is gated on CI passing, not local execution.
 
 ---
 

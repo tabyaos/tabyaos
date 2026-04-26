@@ -1,0 +1,100 @@
+---
+- name: Verify — cis-rhel9
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Assert cramfs modprobe config disables cramfs
+      ansible.builtin.slurp:
+        src: /etc/modprobe.d/cramfs.conf
+      register: cramfs_content
+    - ansible.builtin.assert:
+        that: "'install cramfs /bin/true' in (cramfs_content.content | b64decode)"
+        fail_msg: "CIS RHEL9 1.1.1.1: cramfs not disabled"
+
+    - name: Assert usb-storage modprobe config deployed
+      ansible.builtin.slurp:
+        src: /etc/modprobe.d/usb-storage.conf
+      register: usb_content
+    - ansible.builtin.assert:
+        that: "'install usb-storage /bin/true' in (usb_content.content | b64decode)"
+        fail_msg: "CIS RHEL9 1.1.1.4: usb-storage not disabled"
+
+    - name: Assert ASLR sysctl set to 2
+      ansible.builtin.slurp:
+        src: /etc/sysctl.d/99-cis-rhel9-aslr.conf
+      register: aslr_content
+    - ansible.builtin.assert:
+        that: >-
+          'kernel.randomize_va_space=2' in (aslr_content.content | b64decode) or
+          'kernel.randomize_va_space = 2' in (aslr_content.content | b64decode)
+        fail_msg: "CIS RHEL9 1.5.2: ASLR not set to 2"
+
+    - name: Assert /etc/issue contains authorization warning
+      ansible.builtin.slurp:
+        src: /etc/issue
+      register: issue_content
+    - ansible.builtin.assert:
+        that: "'AUTHORIZED USE ONLY' in (issue_content.content | b64decode)"
+        fail_msg: "CIS RHEL9 1.7.2: /etc/issue missing warning banner"
+
+    - name: Assert DCCP disabled
+      ansible.builtin.slurp:
+        src: /etc/modprobe.d/dccp.conf
+      register: dccp_content
+    - ansible.builtin.assert:
+        that: "'install dccp /bin/true' in (dccp_content.content | b64decode)"
+        fail_msg: "CIS RHEL9 3.1.1: DCCP not disabled"
+
+    - name: Assert SCTP disabled
+      ansible.builtin.slurp:
+        src: /etc/modprobe.d/sctp.conf
+      register: sctp_content
+    - ansible.builtin.assert:
+        that: "'install sctp /bin/true' in (sctp_content.content | b64decode)"
+        fail_msg: "CIS RHEL9 3.1.2: SCTP not disabled"
+
+    - name: Assert network sysctl config deployed
+      ansible.builtin.stat:
+        path: /etc/sysctl.d/99-cis-rhel9-network.conf
+      register: net_sysctl
+    - ansible.builtin.assert:
+        that: net_sysctl.stat.exists
+        fail_msg: "CIS RHEL9 3.2: network sysctl config missing"
+
+    - name: Assert send_redirects=0 in network sysctl
+      ansible.builtin.slurp:
+        src: /etc/sysctl.d/99-cis-rhel9-network.conf
+      register: net_content
+    - ansible.builtin.assert:
+        that: "'send_redirects = 0' in (net_content.content | b64decode)"
+        fail_msg: "CIS RHEL9 3.2.1: send_redirects not disabled"
+
+    - name: Assert auditd baseline rules deployed
+      ansible.builtin.stat:
+        path: /etc/audit/rules.d/10-cis-rhel9-baseline.rules
+      register: audit_rules
+    - ansible.builtin.assert:
+        that: audit_rules.stat.exists
+        fail_msg: "CIS RHEL9 4.1.2: baseline audit rules not deployed"
+
+    - name: Assert session timeout profile script deployed
+      ansible.builtin.slurp:
+        src: /etc/profile.d/99-cis-rhel9-tmout.sh
+      register: tmout_content
+    - ansible.builtin.assert:
+        that:
+          - "'TMOUT=900' in (tmout_content.content | b64decode)"
+          - "'readonly TMOUT' in (tmout_content.content | b64decode)"
+        fail_msg: "CIS RHEL9 5.4.5: TMOUT not set or not readonly"
+
+    - name: Assert /etc/passwd permissions 0644
+      ansible.builtin.stat:
+        path: /etc/passwd
+      register: passwd_stat
+    - ansible.builtin.assert:
+        that:
+          - passwd_stat.stat.mode == '0644'
+          - passwd_stat.stat.uid == 0
+        fail_msg: "CIS RHEL9 6.1.1: /etc/passwd mode {{ passwd_stat.stat.mode }}, expected 0644"

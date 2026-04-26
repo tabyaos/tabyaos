@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: cis_rhel9
+  author: tabyaos
+  description: "CIS Red Hat Enterprise Linux 9 Benchmark Level 2 hardening"
+  license: BSL-1.1
+  min_ansible_version: "2.15"
+  platforms:
+    - name: RedHat
+      versions: ["9"]
+    - name: Rocky
+      versions: ["9"]
+    - name: AlmaLinux
+      versions: ["9"]
+
+dependencies: []

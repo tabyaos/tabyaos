@@ -1,0 +1,63 @@
+---
+# CIS RHEL 9 — Section 3: Network Configuration
+
+- name: "CIS RHEL9 3.1.1 | Disable DCCP"
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/dccp.conf
+    content: "install dccp /bin/true\nblacklist dccp\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS RHEL9 3.1.2 | Disable SCTP"
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/sctp.conf
+    content: "install sctp /bin/true\nblacklist sctp\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS RHEL9 3.2 | Deploy network sysctl hardening"
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-cis-rhel9-network.conf
+    content: |
+      # CIS RHEL9 3.2.1 — send redirects
+      net.ipv4.conf.all.send_redirects = {{ cis_rhel9_net_send_redirects }}
+      net.ipv4.conf.default.send_redirects = {{ cis_rhel9_net_send_redirects }}
+      # CIS RHEL9 3.2.2 — accept redirects
+      net.ipv4.conf.all.accept_redirects = {{ cis_rhel9_net_accept_redirects }}
+      net.ipv4.conf.default.accept_redirects = {{ cis_rhel9_net_accept_redirects }}
+      net.ipv6.conf.all.accept_redirects = {{ cis_rhel9_net_accept_redirects }}
+      net.ipv6.conf.default.accept_redirects = {{ cis_rhel9_net_accept_redirects }}
+      # CIS RHEL9 3.2.3 — source routing
+      net.ipv4.conf.all.accept_source_route = {{ cis_rhel9_net_accept_source_route }}
+      net.ipv4.conf.default.accept_source_route = {{ cis_rhel9_net_accept_source_route }}
+      # CIS RHEL9 3.2.4 — log martians
+      net.ipv4.conf.all.log_martians = {{ cis_rhel9_net_log_martians }}
+      net.ipv4.conf.default.log_martians = {{ cis_rhel9_net_log_martians }}
+      # CIS RHEL9 3.2.5 — rp_filter
+      net.ipv4.conf.all.rp_filter = {{ cis_rhel9_net_rp_filter }}
+      net.ipv4.conf.default.rp_filter = {{ cis_rhel9_net_rp_filter }}
+      # CIS RHEL9 3.2.6 — IPv6 RA
+      net.ipv6.conf.all.accept_ra = {{ cis_rhel9_net_ipv6_accept_ra }}
+      net.ipv6.conf.default.accept_ra = {{ cis_rhel9_net_ipv6_accept_ra }}
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS RHEL9 K8s | ip_forward for pod networking"
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-cis-rhel9-k8s-network.conf
+    content: |
+      # K8s nodes require ip_forward=1 for pod networking
+      net.ipv4.ip_forward = {{ cis_rhel9_net_ip_forward }}
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS RHEL9 3.2 | Apply network sysctl settings"
+  ansible.posix.sysctl:
+    sysctl_file: /etc/sysctl.d/99-cis-rhel9-network.conf
+    reload: true
+  changed_when: false
+  failed_when: false

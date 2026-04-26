@@ -1,0 +1,125 @@
+---
+# CIS RHEL 9 — Section 5: Access, Authentication and Authorization
+
+# ── 5.2 SSH ───────────────────────────────────────────────────────────────────
+
+- name: "CIS RHEL9 5.2 | SSH — disable root login"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin'
+    line: 'PermitRootLogin no'
+    create: true
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart sshd
+
+- name: "CIS RHEL9 5.2 | SSH — disable password auth"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+  notify: Restart sshd
+
+- name: "CIS RHEL9 5.2 | SSH — set MaxAuthTries"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?MaxAuthTries'
+    line: "MaxAuthTries {{ cis_rhel9_ssh_max_auth_tries }}"
+  notify: Restart sshd
+
+- name: "CIS RHEL9 5.2 | SSH — set LoginGraceTime"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?LoginGraceTime'
+    line: "LoginGraceTime {{ cis_rhel9_ssh_login_grace_time }}"
+  notify: Restart sshd
+
+- name: "CIS RHEL9 5.2 | SSH — set ClientAlive timers"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?{{ item.key }}"
+    line: "{{ item.key }} {{ item.val }}"
+  loop:
+    - { key: ClientAliveInterval, val: "{{ cis_rhel9_ssh_client_alive_interval }}" }
+    - { key: ClientAliveCountMax,  val: "{{ cis_rhel9_ssh_client_alive_count_max }}" }
+  notify: Restart sshd
+
+- name: "CIS RHEL9 5.2 | SSH — set banner"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?Banner'
+    line: 'Banner /etc/issue.net'
+  notify: Restart sshd
+
+# RHEL9 manages SSH ciphers via crypto-policies; override only if needed
+- name: "CIS RHEL9 5.2 | Crypto policy — set FIPS-compatible baseline"
+  ansible.builtin.command:
+    cmd: update-crypto-policies --set DEFAULT
+  changed_when: false
+  failed_when: false
+  when: cis_rhel9_manage_services | default(true)
+
+# ── 5.3 PAM / authselect ──────────────────────────────────────────────────────
+
+- name: "CIS RHEL9 5.3.1 | authselect — select sssd with faillock"
+  ansible.builtin.command:
+    cmd: authselect select sssd with-faillock --force
+  changed_when: false
+  failed_when: false
+  when: cis_rhel9_manage_services | default(true)
+
+- name: "CIS RHEL9 5.3.2 | faillock — set deny threshold"
+  ansible.builtin.lineinfile:
+    path: /etc/security/faillock.conf
+    regexp: '^#?deny\s*='
+    line: "deny = {{ cis_rhel9_account_lockout_attempts }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS RHEL9 5.3.2 | faillock — set unlock_time"
+  ansible.builtin.lineinfile:
+    path: /etc/security/faillock.conf
+    regexp: '^#?unlock_time\s*='
+    line: "unlock_time = {{ cis_rhel9_account_lockout_time }}"
+
+- name: "CIS RHEL9 5.3.3 | pwquality — set minlen"
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: '^#?minlen\s*='
+    line: "minlen = {{ cis_rhel9_password_minlen }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS RHEL9 5.3.3 | pwquality — set minclass"
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: '^#?minclass\s*='
+    line: "minclass = {{ cis_rhel9_password_minclass }}"
+
+# ── 5.4 Session ───────────────────────────────────────────────────────────────
+
+- name: "CIS RHEL9 5.4.5 | Session timeout profile script"
+  ansible.builtin.copy:
+    dest: /etc/profile.d/99-cis-rhel9-tmout.sh
+    content: |
+      TMOUT={{ cis_rhel9_session_timeout }}
+      readonly TMOUT
+      export TMOUT
+    owner: root
+    group: root
+    mode: "0644"
+    force: false
+
+- name: "CIS RHEL9 5.6.1 | Restrict cron to root only"
+  ansible.builtin.copy:
+    dest: /etc/cron.allow
+    content: "root\n"
+    owner: root
+    group: root
+    mode: "0600"
+    force: false

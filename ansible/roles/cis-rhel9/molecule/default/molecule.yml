@@ -1,0 +1,32 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+platforms:
+  - name: tabyaos-cis-rhel9
+    image: redhat/ubi9:latest
+    privileged: true
+    pre_build_image: true
+    networks:
+      - name: molecule
+
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      interpreter_python: auto_silent
+      stdout_callback: default
+  ansible_args:
+    - --diff
+  env:
+    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+verifier:
+  name: ansible
+
+lint: |
+  set -e
+  ansible-lint

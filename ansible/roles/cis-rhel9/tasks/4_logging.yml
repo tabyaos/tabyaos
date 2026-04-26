@@ -1,0 +1,65 @@
+---
+# CIS RHEL 9 — Section 4: Logging and Auditing
+
+- name: "CIS RHEL9 4.1.1 | Install auditd"
+  ansible.builtin.dnf:
+    name: audit
+    state: present
+  when: cis_rhel9_manage_services | default(true)
+
+- name: "CIS RHEL9 4.1.2 | Deploy baseline audit rules"
+  ansible.builtin.copy:
+    dest: /etc/audit/rules.d/10-cis-rhel9-baseline.rules
+    content: |
+      -a always,exit -F arch=b64 -S adjtimex,settimeofday -k time-change
+      -w /etc/localtime -p wa -k time-change
+      -w /etc/group -p wa -k identity
+      -w /etc/passwd -p wa -k identity
+      -w /etc/shadow -p wa -k identity
+      -a always,exit -F arch=b64 -S sethostname,setdomainname -k system-locale
+      -w /var/log/sudo.log -p wa -k sudo_log
+      -e 2
+    owner: root
+    group: root
+    mode: "0640"
+    force: false
+
+- name: "CIS RHEL9 4.2.1 | Set max_log_file_action"
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: '^#?max_log_file_action'
+    line: "max_log_file_action = {{ cis_rhel9_auditd_max_log_file_action }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0640"
+  failed_when: false
+
+- name: "CIS RHEL9 4.2.2 | Set max_log_file"
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: '^#?max_log_file\s*='
+    line: "max_log_file = {{ cis_rhel9_auditd_max_log_file }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0640"
+  failed_when: false
+
+- name: "CIS RHEL9 4.2.3 | Set /var/log/audit permissions"
+  ansible.builtin.file:
+    path: /var/log/audit
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  failed_when: false
+
+- name: "CIS RHEL9 4.1.1 | Enable and start auditd"
+  ansible.builtin.service:
+    name: auditd
+    enabled: true
+    state: started
+  when: cis_rhel9_manage_services | default(true)
+  failed_when: false
+  notify: Restart auditd

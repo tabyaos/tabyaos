@@ -1,0 +1,53 @@
+---
+# CIS Red Hat Enterprise Linux 9 Benchmark Level 2 — configurable defaults.
+
+cis_rhel9_manage_services: true
+
+# ── Section 1: Filesystem ────────────────────────────────────────────────────
+cis_rhel9_disable_cramfs: true
+cis_rhel9_disable_squashfs: true
+cis_rhel9_disable_udf: true
+cis_rhel9_disable_usb_storage: true
+cis_rhel9_tmp_mount_opts: "mode=1777,strictatime,noexec,nodev,nosuid"
+cis_rhel9_aslr_enabled: true
+
+# ── Section 2: Services ──────────────────────────────────────────────────────
+cis_rhel9_remove_xorg: true
+cis_rhel9_remove_avahi: true
+cis_rhel9_remove_cups: true
+cis_rhel9_remove_dhcp: true
+cis_rhel9_remove_dns: true
+cis_rhel9_remove_ftp: true
+cis_rhel9_remove_http: true
+cis_rhel9_remove_imap: true
+cis_rhel9_remove_samba: true
+cis_rhel9_remove_squid: true
+cis_rhel9_remove_snmp: true
+cis_rhel9_remove_nis: true
+cis_rhel9_remove_telnet: true
+cis_rhel9_remove_rsh: true
+cis_rhel9_remove_nfs: true
+
+# ── Section 3: Network ───────────────────────────────────────────────────────
+cis_rhel9_net_ip_forward: 1          # K8s nodes need ip_forward=1
+cis_rhel9_net_send_redirects: 0
+cis_rhel9_net_accept_redirects: 0
+cis_rhel9_net_accept_source_route: 0
+cis_rhel9_net_log_martians: 1
+cis_rhel9_net_rp_filter: 1
+cis_rhel9_net_ipv6_accept_ra: 0
+
+# ── Section 4: Logging ───────────────────────────────────────────────────────
+cis_rhel9_auditd_max_log_file_action: keep_logs
+cis_rhel9_auditd_max_log_file: 8
+
+# ── Section 5: Access ────────────────────────────────────────────────────────
+cis_rhel9_ssh_max_auth_tries: 4
+cis_rhel9_ssh_login_grace_time: 60
+cis_rhel9_ssh_client_alive_interval: 300
+cis_rhel9_ssh_client_alive_count_max: 2
+cis_rhel9_account_lockout_attempts: 5
+cis_rhel9_account_lockout_time: 900
+cis_rhel9_session_timeout: 900
+cis_rhel9_password_minlen: 14
+cis_rhel9_password_minclass: 4

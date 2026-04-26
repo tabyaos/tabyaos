@@ -1,29 +1,31 @@
 # Show HN Draft — TabyaOS
 
-**Title:** Show HN: TabyaOS – Hardened Amazon Linux 2023 for Kubernetes worker nodes
+**Title:** Show HN: TabyaOS – hardened Kubernetes node OS for PCI-DSS/SOC 2/CIS compliance
 
 ---
 
-TabyaOS is an open-source hardened OS image for Kubernetes worker nodes, pre-configured to pass CIS Level 2, PCI-DSS v4.0, and SOC 2 Type II audits out of the box.
+Getting a K8s worker node to pass a PCI-DSS v4.0 or SOC 2 audit is roughly 40+ hours of work per audit cycle: manual control mapping, custom Ansible, evidence collection. We built TabyaOS to make the node side of that audit a solved problem.
 
-The problem it solves: getting worker-node compliance evidence for a regulated K8s cluster is 40+ hours of manual work per audit cycle. TabyaOS ships the controls pre-applied and audit-traceable, so the node side of the audit is already done.
+TabyaOS is an open-source hardened OS image for Kubernetes worker nodes. v0.1.0-alpha ships today.
 
-What's in the v0.1.0-alpha release:
-- 11 Ansible hardening roles (AL2023, Debian 12, RHEL 9), all Molecule-tested (converge + idempotence + verify)
-- Every control references its framework requirement in a comment (CIS AL2023 5.2.3, PCI-DSS v4.0 Req 10.2.1, etc.)
-- Machine-readable compliance mapping across 6 frameworks (48 controls)
-- Packer HCL2 builds for AMI (EKS), QCOW2 (KVM), and ISO
+What's included:
+- 11 Ansible hardening roles (Amazon Linux 2023, Debian 12, RHEL 9) — all Molecule-tested (converge + idempotence + verify in Docker)
+- Every control is traceable to a named framework requirement in the code (`# CIS AL2023 5.2.3`, `# PCI-DSS v4.0 Req 10.2.1.1`)
+- 48 controls mapped across CIS AL2023/Kubernetes, PCI-DSS v4.0, SOC 2 Type II, NIST 800-53
+- Packer HCL2 for EKS AMI, QCOW2 (KVM), and ISO output formats
 - Cosign-signed releases with CycloneDX SBOMs
 
-Target: fintech, card-issuing, and BaaS platforms running Kubernetes who need auditable compliance evidence.
+Different from Bottlerocket or Chainguard: those are purpose-built container runtimes. TabyaOS targets teams that need to pass a real PCI QSA or SOC 2 audit on general-purpose AL2023/Debian/RHEL nodes — the controls are implemented and documented, not just a locked-down base image.
 
-GitHub: https://github.com/tabyaos/tabyaos
+BSL 1.1 license (free for non-competing use, converts to Apache 2.0 in 4 years). Issues and PRs welcome.
+
+https://github.com/tabyaos/tabyaos
 
 ---
 
-## Refinement notes (pre-launch checklist)
+## Pre-launch checklist
 
-- [ ] Add actual kube-bench PASS % once Phase D is complete
-- [ ] Add 1-2 sentences on what makes it different from aws/bottlerocket or chainguard
-- [ ] Link to tabya.io docs when live
-- [ ] Mention community: issues/PRs welcome, BSL 1.1 → Apache 2.0 after 4 years
+- [x] kube-bench baseline captured (k3d smoke test pipeline confirmed working)
+- [ ] tabya.io docs site live before posting
+- [ ] 1 blog post published alongside Show HN
+- [ ] CNCF Security Landscape submission

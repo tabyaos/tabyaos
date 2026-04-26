@@ -35,6 +35,7 @@ MODELS = {
     "deep":   "deepseek-coder:33b",
     "big":    "gpt-oss:120b",
     "fast":   "mistral:7b",
+    "qwen3": "qwen3-coder:30b",
 }
 
 PROJECT_CONTEXT = """

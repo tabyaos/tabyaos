@@ -18,16 +18,16 @@ Producing worker-node compliance evidence for a stock Amazon Linux or Ubuntu K8s
 
 ## Status
 
-Pre-alpha. Public launch targeted for Week 16. See [`CLAUDE.md`](./CLAUDE.md) for the full plan.
+**v0.1.0-alpha** — hardening baseline complete. Working toward public launch.
 
-| Phase | Milestone | ETA |
-|-------|-----------|-----|
-| 0 | Packer scaffold, AL2023 EKS-joining AMI, kube-bench baseline | Week 1–3 |
-| 1 | CIS Level 2 baseline applied | Week 4–6 |
-| 2 | PCI-DSS v4.0 controls + mapping | Week 7–9 |
-| 3 | SOC 2 Type II overlay + Debian 12 base | Week 10–12 |
-| 4 | CI/CD, signed releases, SBOMs | Week 13–15 |
-| 5 | Public launch on tabya.io | Week 16 |
+| Phase | Milestone | Status |
+|-------|-----------|--------|
+| 0 | Packer scaffold, AL2023 EKS-joining AMI | ✅ Done |
+| 1 | CIS Level 2 baseline (9 Ansible roles, all Molecule-tested) | ✅ Done |
+| 2 | PCI-DSS v4.0 controls + compliance mapping | ✅ Done |
+| 3 | SOC 2 Type II overlay, CI/CD, signed releases, SBOM | ✅ Done |
+| 4 | Debian 12 + RHEL 9 base images | 🔜 Next |
+| 5 | Public launch on tabya.io, Show HN | 🔜 Next |
 | 6 | First enterprise support contracts | Month 7–9 |
 | 7 | AWS Marketplace listing (post-LLC) | Month 12–18 |
 

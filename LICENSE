@@ -1,0 +1,26 @@
+Business Source License 1.1
+
+Licensor: Tabya
+Licensed Work: TabyaOS. (c) 2026 Tabya.
+
+Additional Use Grant:
+You may use the Licensed Work for any non-production purpose. You may
+also use it in production, provided you do not offer it (modified or
+unmodified) to third parties as a commercial hardened-OS, compliance
+automation, or managed-node service that competes with Tabya's paid
+offerings.
+
+Change Date: Four years from the date each version of the Licensed Work
+is first published under this License.
+
+Change License: Apache License, Version 2.0
+
+---
+
+The full text of the Business Source License 1.1 is published at:
+https://mariadb.com/bsl11/
+
+This LICENSE file uses the canonical BSL 1.1 parameters above. The
+accompanying full legal text should be copied verbatim from the link
+above before the first tagged release. Have counsel review the
+"Additional Use Grant" wording above before the 1.0 launch.

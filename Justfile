@@ -280,6 +280,44 @@ _pull-amazonlinux:
 # Meta
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Local AI (Ollama — token-free code generation)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Generate a new Ansible role scaffold (qwen2.5-coder:32b)
+# Usage: just ai-gen-role <role-name> "<description>"
+ai-gen-role role description:
+    python3 scripts/local-ai.py gen-role "{{role}}" "{{description}}"
+
+# Generate verify.yml from an existing role's tasks (qwen2.5-coder:32b)
+# Usage: just ai-gen-verify <role-name>
+ai-gen-verify role:
+    python3 scripts/local-ai.py gen-verify "{{role}}"
+
+# Generate Ansible tasks for a hardening requirement (qwen2.5-coder:32b)
+# Usage: just ai-gen-tasks "PCI-DSS Req 10.3.3: protect audit logs from modification"
+ai-gen-tasks requirement:
+    python3 scripts/local-ai.py gen-tasks "{{requirement}}"
+
+# Generate a compliance control YAML entry (devstral-small-2:24b)
+# Usage: just ai-expand-control NET-001 "Disable IPv6 on non-required interfaces"
+ai-expand-control id description:
+    python3 scripts/local-ai.py expand-control "{{id}}" "{{description}}"
+
+# Review a YAML file for idempotency/quality issues (qwen2.5-coder:32b)
+# Usage: just ai-review ansible/roles/cis-l2/tasks/main.yml
+ai-review file:
+    python3 scripts/local-ai.py review-yaml "{{file}}"
+
+# Raw query — pick your model: coder, devops, deep, big, fast
+# Usage: just ai-ask coder "how do I make auditd rules immutable?"
+ai-ask model +prompt:
+    python3 scripts/local-ai.py ask "{{model}}" "{{prompt}}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Meta
+# ─────────────────────────────────────────────────────────────────────────────
+
 # List all available targets
 list:
     @just --list

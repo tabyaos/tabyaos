@@ -40,6 +40,7 @@ jobs:
           echo "short=${SHORT}"     >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.dry_run != true }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_PACKER_ROLE_ARN }}
@@ -69,9 +70,14 @@ jobs:
           echo "ami_id=${AMI_X86}" >> "$GITHUB_OUTPUT"
 
       - name: Dry-run placeholder (packer validate only)
+        id: dry_run_x86
         if: ${{ inputs.dry_run == true }}
         run: |
-          packer validate packer/al2023
+          packer validate \
+            -var aws_region=us-east-1 \
+            -var subnet_id=subnet-placeholder \
+            -evaluate-datasources=false \
+            packer/al2023
           echo "DRY RUN: packer validate passed — skipping actual AMI build"
           echo "ami_id=ami-dryrun-x86" >> "$GITHUB_OUTPUT"
 
@@ -90,19 +96,107 @@ jobs:
           echo "ami_id=${AMI_ARM}" >> "$GITHUB_OUTPUT"
 
       - name: Dry-run placeholder arm64
+        id: dry_run_arm64
         if: ${{ inputs.dry_run == true }}
         run: echo "ami_id=ami-dryrun-arm64" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve release AMI IDs
+        id: release_amis
+        run: |
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            echo "x86_64=${{ steps.dry_run_x86.outputs.ami_id }}" >> "$GITHUB_OUTPUT"
+            echo "arm64=${{ steps.dry_run_arm64.outputs.ami_id }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "x86_64=${{ steps.build_x86.outputs.ami_id }}" >> "$GITHUB_OUTPUT"
+            echo "arm64=${{ steps.build_arm64.outputs.ami_id }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
-      - name: Generate SBOM (Syft)
+      - name: Generate release metadata
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-          # Generate SBOMs for both AMI manifests (using the manifest file)
-          echo '{"ami_x86_64":"${{ steps.build_x86.outputs.ami_id }}","ami_arm64":"${{ steps.build_arm64.outputs.ami_id }}","version":"${{ steps.version.outputs.version }}","eks_version":"1.31"}' > /tmp/tabyaos-manifest.json
-          syft convert /tmp/tabyaos-manifest.json -o spdx-json=/tmp/tabyaos-${{ steps.version.outputs.short }}-sbom.spdx.json
-          syft convert /tmp/tabyaos-manifest.json -o cyclonedx-json=/tmp/tabyaos-${{ steps.version.outputs.short }}-sbom.cdx.json
+          cat > /tmp/tabyaos-${{ steps.version.outputs.short }}-sbom.spdx.json <<EOF
+          {
+            "spdxVersion": "SPDX-2.3",
+            "dataLicense": "CC0-1.0",
+            "SPDXID": "SPDXRef-DOCUMENT",
+            "name": "tabyaos-${{ steps.version.outputs.short }}",
+            "documentNamespace": "https://github.com/${{ github.repository }}/releases/${{ steps.version.outputs.version }}/spdx",
+            "creationInfo": {
+              "created": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "creators": ["Tool: GitHub Actions release workflow"]
+            },
+            "packages": [
+              {
+                "name": "tabyaos-al2023-x86_64",
+                "SPDXID": "SPDXRef-Package-tabyaos-al2023-x86_64",
+                "downloadLocation": "NOASSERTION",
+                "filesAnalyzed": false,
+                "versionInfo": "${{ steps.version.outputs.short }}",
+                "externalRefs": [
+                  {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:generic/tabyaos-al2023-x86_64@${{ steps.version.outputs.short }}?ami=${{ steps.release_amis.outputs.x86_64 }}"
+                  }
+                ]
+              },
+              {
+                "name": "tabyaos-al2023-arm64",
+                "SPDXID": "SPDXRef-Package-tabyaos-al2023-arm64",
+                "downloadLocation": "NOASSERTION",
+                "filesAnalyzed": false,
+                "versionInfo": "${{ steps.version.outputs.short }}",
+                "externalRefs": [
+                  {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:generic/tabyaos-al2023-arm64@${{ steps.version.outputs.short }}?ami=${{ steps.release_amis.outputs.arm64 }}"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+
+          cat > /tmp/tabyaos-${{ steps.version.outputs.short }}-sbom.cdx.json <<EOF
+          {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "version": 1,
+            "metadata": {
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "component": {
+                "type": "operating-system",
+                "name": "TabyaOS",
+                "version": "${{ steps.version.outputs.short }}"
+              }
+            },
+            "components": [
+              {
+                "type": "operating-system",
+                "name": "tabyaos-al2023-x86_64",
+                "version": "${{ steps.version.outputs.short }}",
+                "properties": [
+                  { "name": "aws.ami.id", "value": "${{ steps.release_amis.outputs.x86_64 }}" },
+                  { "name": "aws.region", "value": "${{ env.AWS_REGION }}" },
+                  { "name": "eks.version", "value": "1.31" }
+                ]
+              },
+              {
+                "type": "operating-system",
+                "name": "tabyaos-al2023-arm64",
+                "version": "${{ steps.version.outputs.short }}",
+                "properties": [
+                  { "name": "aws.ami.id", "value": "${{ steps.release_amis.outputs.arm64 }}" },
+                  { "name": "aws.region", "value": "${{ env.AWS_REGION }}" },
+                  { "name": "eks.version", "value": "1.31" }
+                ]
+              }
+            ]
+          }
+          EOF
 
       - name: Sign SBOM with Cosign (keyless OIDC)
         run: |
@@ -118,8 +212,8 @@ jobs:
             "version": "${{ steps.version.outputs.version }}",
             "git_sha": "${{ github.sha }}",
             "build_run": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "ami_x86_64": "${{ steps.build_x86.outputs.ami_id }}",
-            "ami_arm64": "${{ steps.build_arm64.outputs.ami_id }}",
+            "ami_x86_64": "${{ steps.release_amis.outputs.x86_64 }}",
+            "ami_arm64": "${{ steps.release_amis.outputs.arm64 }}",
             "aws_region": "${{ env.AWS_REGION }}",
             "eks_version": "1.31",
             "hardening_level": "cis_l2+pci_dss+soc2",
@@ -141,8 +235,8 @@ jobs:
 
             | Architecture | AMI ID | Region |
             |---|---|---|
-            | x86_64 | `${{ steps.build_x86.outputs.ami_id }}` | ${{ env.AWS_REGION }} |
-            | arm64 | `${{ steps.build_arm64.outputs.ami_id }}` | ${{ env.AWS_REGION }} |
+            | x86_64 | `${{ steps.release_amis.outputs.x86_64 }}` | ${{ env.AWS_REGION }} |
+            | arm64 | `${{ steps.release_amis.outputs.arm64 }}` | ${{ env.AWS_REGION }} |
 
             ### Compliance coverage
 

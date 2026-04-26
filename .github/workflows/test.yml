@@ -75,6 +75,13 @@ jobs:
             "ansible-lint==24.*" \
             "docker>=7"
 
+      - name: Install Ansible collections
+        run: |
+          ansible-galaxy collection install \
+            community.docker \
+            ansible.posix \
+            community.general
+
       - name: Pull test container image
         run: docker pull amazonlinux:2023
 

@@ -35,7 +35,7 @@ export AWS_SESSION_TOKEN=...          # if using assumed role / SSO
 export AWS_DEFAULT_REGION=us-east-1  # overrides the var default
 ```
 
-For CI, GitHub Actions will use OIDC (keyless) authentication — see `.github/workflows/build.yml` (not yet written).
+For CI, GitHub Actions uses OIDC authentication; see `.github/workflows/build.yml`.
 
 The IAM principal running the build needs these permissions at minimum:
 

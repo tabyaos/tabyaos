@@ -1,0 +1,97 @@
+---
+# TabyaOS — Debian 12 hardening playbook
+#
+# Usage:
+#   ansible-playbook ansible/playbooks/harden-debian12.yml \
+#     -i <inventory> \
+#     --tags cis_debian12         # CIS L2 only
+#     --tags pci_dss              # PCI-DSS overlay only
+#
+# Profiles (set via extra vars):
+#   -e "tabyaos_profile=cis_only"   — CIS Debian12 L2 only
+#   -e "tabyaos_profile=full"       — everything (default)
+
+- name: TabyaOS | Harden Debian 12 Kubernetes worker node
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    tabyaos_profile: full
+
+  pre_tasks:
+    - name: Verify target OS is Debian 12
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Debian"
+          - ansible_distribution_major_version | int >= 12
+        fail_msg: "This playbook targets Debian 12. Got: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+        success_msg: "OS check passed: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      tags: [always]
+
+    - name: Record hardening start time
+      ansible.builtin.set_fact:
+        tabyaos_harden_start: "{{ ansible_date_time.iso8601 }}"
+      tags: [always]
+
+  roles:
+    # 1. CIS Debian 12 Level 2 baseline
+    - role: cis-debian12
+      tags: [cis_debian12]
+
+    # 2. CIS Kubernetes Benchmark — Worker Node section
+    - role: cis-k8s-worker
+      tags: [cis_k8s]
+
+    # 3. Secure time synchronisation
+    - role: chrony-hardened
+      tags: [chrony, pci_dss]
+
+    # 4. AIDE file integrity monitoring
+    - role: aide
+      tags: [aide, pci_dss]
+
+    # 5. PCI-DSS v4.0 audit rules
+    - role: auditd-pci
+      tags: [auditd, pci_dss]
+
+    # 6. PCI-DSS v4.0 controls overlay
+    - role: pci-dss-v4
+      when: tabyaos_profile in ['pci_dss', 'full']
+      tags: [pci_dss]
+
+    # 7. SOC 2 Type II controls overlay
+    - role: soc2-cc6-cc7-cc8
+      when: tabyaos_profile in ['soc2', 'full']
+      tags: [soc2]
+
+    # 8. FIPS mode (optional — requires reboot)
+    - role: fips-mode
+      when: tabyaos_fips_enabled | default(false) | bool
+      tags: [fips]
+
+  post_tasks:
+    - name: Write hardening completion record
+      ansible.builtin.lineinfile:
+        path: /etc/tabyaos-release
+        line: "HardenedAt={{ tabyaos_harden_start }}"
+        create: true
+        owner: root
+        group: root
+        mode: "0644"
+      tags: [always]
+
+    - name: Write applied profile
+      ansible.builtin.lineinfile:
+        path: /etc/tabyaos-release
+        line: "Profile={{ tabyaos_profile }}"
+      tags: [always]
+
+    - name: Hardening complete — print summary
+      ansible.builtin.debug:
+        msg:
+          - "=== TabyaOS Debian 12 hardening complete ==="
+          - "Profile    : {{ tabyaos_profile }}"
+          - "Started at : {{ tabyaos_harden_start }}"
+          - "Finished at: {{ ansible_date_time.iso8601 }}"
+      tags: [always]

@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: cis-debian12
+  author: tabyaos
+  description: "CIS Debian Linux 12 Benchmark Level 2 hardening"
+  license: BSL-1.1
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions: ["12"]
+
+dependencies: []

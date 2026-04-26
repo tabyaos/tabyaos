@@ -1,0 +1,20 @@
+---
+- name: Reload sysctl
+  ansible.posix.sysctl:
+    sysctl_file: /etc/sysctl.conf
+    reload: true
+  failed_when: false
+
+- name: Restart ssh
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
+  when: cis_debian12_manage_services | default(true)
+  failed_when: false
+
+- name: Restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+  when: cis_debian12_manage_services | default(true)
+  failed_when: false

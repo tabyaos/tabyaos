@@ -1,0 +1,80 @@
+---
+- name: Verify — cis-debian12
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Assert cramfs modprobe config disables cramfs
+      ansible.builtin.slurp:
+        src: /etc/modprobe.d/cramfs.conf
+      register: cramfs_content
+    - ansible.builtin.assert:
+        that: "'install cramfs /bin/true' in (cramfs_content.content | b64decode)"
+        fail_msg: "CIS Debian12 1.1.1.1: cramfs not disabled"
+
+    - name: Assert usb-storage modprobe config deployed
+      ansible.builtin.slurp:
+        src: /etc/modprobe.d/usb-storage.conf
+      register: usb_content
+    - ansible.builtin.assert:
+        that: "'install usb-storage /bin/true' in (usb_content.content | b64decode)"
+        fail_msg: "CIS Debian12 1.1.1.4: usb-storage not disabled"
+
+    - name: Assert ASLR sysctl set to 2
+      ansible.builtin.slurp:
+        src: /etc/sysctl.d/99-cis-debian12-aslr.conf
+      register: aslr_content
+    - ansible.builtin.assert:
+        that: >-
+          'kernel.randomize_va_space=2' in (aslr_content.content | b64decode) or
+          'kernel.randomize_va_space = 2' in (aslr_content.content | b64decode)
+        fail_msg: "CIS Debian12 1.5.2: ASLR not set to 2"
+
+    - name: Assert /etc/issue contains authorization warning
+      ansible.builtin.slurp:
+        src: /etc/issue
+      register: issue_content
+    - ansible.builtin.assert:
+        that: "'AUTHORIZED USE ONLY' in (issue_content.content | b64decode)"
+        fail_msg: "CIS Debian12 1.7.2: /etc/issue missing warning banner"
+
+    - name: Assert DCCP disabled
+      ansible.builtin.slurp:
+        src: /etc/modprobe.d/dccp.conf
+      register: dccp_content
+    - ansible.builtin.assert:
+        that: "'install dccp /bin/true' in (dccp_content.content | b64decode)"
+        fail_msg: "CIS Debian12 3.1.1: dccp not disabled"
+
+    - name: Assert SCTP disabled
+      ansible.builtin.slurp:
+        src: /etc/modprobe.d/sctp.conf
+      register: sctp_content
+    - ansible.builtin.assert:
+        that: "'install sctp /bin/true' in (sctp_content.content | b64decode)"
+        fail_msg: "CIS Debian12 3.1.2: sctp not disabled"
+
+    - name: Assert network sysctl config deployed
+      ansible.builtin.stat:
+        path: /etc/sysctl.d/99-cis-debian12-network.conf
+      register: net_sysctl
+    - ansible.builtin.assert:
+        that: net_sysctl.stat.exists
+        fail_msg: "CIS Debian12 3.2: network sysctl config missing"
+
+    - name: Assert send_redirects=0 in network sysctl
+      ansible.builtin.slurp:
+        src: /etc/sysctl.d/99-cis-debian12-network.conf
+      register: net_content
+    - ansible.builtin.assert:
+        that: "'send_redirects = 0' in (net_content.content | b64decode)"
+        fail_msg: "CIS Debian12 3.2.1: send_redirects not disabled"
+
+    - name: Assert K8s network sysctl file exists
+      ansible.builtin.stat:
+        path: /etc/sysctl.d/99-cis-debian12-k8s-network.conf
+      register: k8s_net
+    - ansible.builtin.assert:
+        that: k8s_net.stat.exists
+        fail_msg: "CIS Debian12 3.3.4: K8s network sysctl file missing"

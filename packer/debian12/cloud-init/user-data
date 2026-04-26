@@ -1,0 +1,27 @@
+#cloud-config
+# Packer build VM bootstrap — local QEMU builds ONLY.
+# This password is ephemeral: it exists only during the Packer session.
+# The hardened QCOW2 produced by this build has SSH hardened via cis-l2.
+
+users:
+  - name: debian
+    groups: [sudo, adm]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+
+chpasswd:
+  list: |
+    debian:packer
+  expire: false
+
+ssh_pwauth: true
+
+packages:
+  - python3
+  - python3-apt
+  - sudo
+  - curl
+
+runcmd:
+  - touch /tmp/cloud-init-done

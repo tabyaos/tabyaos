@@ -1,0 +1,29 @@
+---
+- name: Prepare — install Python and base packages in Debian 12 container
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Install Python and base packages
+      ansible.builtin.raw: |
+        apt-get update -qq && \
+        apt-get install -y --no-install-recommends \
+          python3 python3-apt sudo curl procps \
+          libpam-runtime libpam-modules \
+          apparmor apparmor-utils \
+          auditd \
+          chrony \
+          openssh-client openssh-server \
+          libpwquality-tools \
+          modprobe kmod \
+          sysctl 2>/dev/null || true
+      changed_when: false
+
+    - name: Create required directories
+      ansible.builtin.raw: |
+        mkdir -p /etc/modprobe.d /etc/audit/rules.d /etc/sysctl.d \
+          /etc/security/limits.d /etc/profile.d /etc/cron.d /etc/cron.daily \
+          /etc/default /etc/ssh /etc/systemd/system \
+          /etc/kubernetes /var/lib/kubelet/pki \
+          /etc/apparmor.d
+      changed_when: false

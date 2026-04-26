@@ -1,0 +1,26 @@
+---
+# CIS Debian Linux 12 Benchmark Level 2
+
+- name: "CIS Debian12 | Section 1 — Filesystem Configuration"
+  ansible.builtin.import_tasks: 1_filesystem.yml
+  tags: [cis_debian12, cis_debian12_filesystem]
+
+- name: "CIS Debian12 | Section 2 — Services"
+  ansible.builtin.import_tasks: 2_services.yml
+  tags: [cis_debian12, cis_debian12_services]
+
+- name: "CIS Debian12 | Section 3 — Network Configuration"
+  ansible.builtin.import_tasks: 3_network.yml
+  tags: [cis_debian12, cis_debian12_network]
+
+- name: "CIS Debian12 | Section 4 — Logging and Auditing"
+  ansible.builtin.import_tasks: 4_logging.yml
+  tags: [cis_debian12, cis_debian12_logging]
+
+- name: "CIS Debian12 | Section 5 — Access, Authentication and Authorization"
+  ansible.builtin.import_tasks: 5_access.yml
+  tags: [cis_debian12, cis_debian12_access]
+
+- name: "CIS Debian12 | Section 6 — System Maintenance"
+  ansible.builtin.import_tasks: 6_maintenance.yml
+  tags: [cis_debian12, cis_debian12_maintenance]

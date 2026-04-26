@@ -1,0 +1,12 @@
+---
+- name: Converge — cis-debian12
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    cis_debian12_manage_services: false
+
+  roles:
+    - role: cis-debian12
+      tags: [cis_debian12]

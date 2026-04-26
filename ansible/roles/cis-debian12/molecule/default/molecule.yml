@@ -1,0 +1,30 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+platforms:
+  - name: tabyaos-cis-debian12
+    image: debian:12
+    privileged: true
+    pre_build_image: true
+    networks:
+      - name: molecule
+
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      interpreter_python: auto_silent
+      stdout_callback: default
+  ansible_args:
+    - --diff
+
+verifier:
+  name: ansible
+
+lint: |
+  set -e
+  ansible-lint

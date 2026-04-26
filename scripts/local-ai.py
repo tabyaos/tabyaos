@@ -66,6 +66,17 @@ def ollama_generate(model: str, prompt: str, stream: bool = True) -> str:
         "model": model,
         "prompt": prompt,
         "stream": stream,
+        "options": {
+            # Push all layers to GPU (RTX 3090, 24 GB VRAM).
+            # 99 = "as many as fit"; Ollama caps at actual layer count.
+            # gpt-oss:120b won't fit fully — remaining layers fall back to CPU.
+            "num_gpu": 99,
+            # Low CPU thread count — GPU handles computation, CPU just tokenizes.
+            "num_thread": 4,
+            # 8 K context is enough for code gen; full 32 K would eat extra VRAM
+            # and cause CPU offloading when VRAM is already ~20 GB occupied.
+            "num_ctx": 8192,
+        },
     }).encode()
 
     req = urllib.request.Request(

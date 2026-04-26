@@ -1,0 +1,86 @@
+---
+# CIS RHEL 9 — Section 2: Services
+
+- name: "CIS RHEL9 2.1 | Remove telnet-server"
+  ansible.builtin.dnf:
+    name: telnet-server
+    state: absent
+  when: (cis_rhel9_remove_telnet | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.2 | Remove rsh-server"
+  ansible.builtin.dnf:
+    name: rsh-server
+    state: absent
+  when: (cis_rhel9_remove_rsh | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.3 | Remove ypbind / NIS client"
+  ansible.builtin.dnf:
+    name: ypbind
+    state: absent
+  when: (cis_rhel9_remove_nis | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.4 | Remove avahi-autoipd"
+  ansible.builtin.dnf:
+    name: avahi-autoipd
+    state: absent
+  when: (cis_rhel9_remove_avahi | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.5 | Remove cups (printing)"
+  ansible.builtin.dnf:
+    name: cups
+    state: absent
+  when: (cis_rhel9_remove_cups | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.6 | Remove dhcp-server"
+  ansible.builtin.dnf:
+    name: dhcp-server
+    state: absent
+  when: (cis_rhel9_remove_dhcp | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.7 | Remove bind (DNS server)"
+  ansible.builtin.dnf:
+    name: bind
+    state: absent
+  when: (cis_rhel9_remove_dns | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.8 | Remove vsftpd"
+  ansible.builtin.dnf:
+    name: vsftpd
+    state: absent
+  when: (cis_rhel9_remove_ftp | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.9 | Remove httpd (Apache)"
+  ansible.builtin.dnf:
+    name: httpd
+    state: absent
+  when: (cis_rhel9_remove_http | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.10 | Remove dovecot (IMAP/POP3)"
+  ansible.builtin.dnf:
+    name: dovecot
+    state: absent
+  when: (cis_rhel9_remove_imap | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.11 | Remove samba"
+  ansible.builtin.dnf:
+    name: samba
+    state: absent
+  when: (cis_rhel9_remove_samba | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.12 | Remove squid"
+  ansible.builtin.dnf:
+    name: squid
+    state: absent
+  when: (cis_rhel9_remove_squid | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.13 | Remove net-snmp"
+  ansible.builtin.dnf:
+    name: net-snmp
+    state: absent
+  when: (cis_rhel9_remove_snmp | default(true)) and (cis_rhel9_manage_services | default(true))
+
+- name: "CIS RHEL9 2.14 | Remove nfs-utils server components"
+  ansible.builtin.dnf:
+    name: nfs-utils
+    state: absent
+  when: (cis_rhel9_remove_nfs | default(true)) and (cis_rhel9_manage_services | default(true))

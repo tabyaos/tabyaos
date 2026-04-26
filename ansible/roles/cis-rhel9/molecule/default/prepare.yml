@@ -1,0 +1,26 @@
+---
+- name: Prepare — install Python and base packages in UBI9 container
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Install critical packages (sudo + python3 + sysctl)
+      ansible.builtin.raw: dnf install -y python3 sudo procps-ng
+      changed_when: false
+      retries: 3
+      delay: 5
+
+    - name: Install additional packages (ignore failures — not all in UBI repos)
+      ansible.builtin.raw: >-
+        dnf install -y python3-dnf curl
+        audit libpwquality openssh-server authselect 2>/dev/null || true
+      changed_when: false
+
+    - name: Create required directories
+      ansible.builtin.raw: |
+        mkdir -p /etc/modprobe.d /etc/audit/rules.d /etc/sysctl.d \
+          /etc/security/limits.d /etc/profile.d /etc/cron.d /etc/cron.daily \
+          /etc/ssh /etc/systemd/system \
+          /etc/kubernetes /var/lib/kubelet/pki \
+          /var/log/audit
+      changed_when: false

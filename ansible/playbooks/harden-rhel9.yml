@@ -1,0 +1,85 @@
+---
+# TabyaOS — RHEL 9 hardening playbook (stub — cis-rhel9 role in progress)
+#
+# Usage:
+#   ansible-playbook ansible/playbooks/harden-rhel9.yml \
+#     -i <inventory> \
+#     -e "tabyaos_profile=full"
+
+- name: TabyaOS | Harden RHEL 9 Kubernetes worker node
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    tabyaos_profile: full
+
+  pre_tasks:
+    - name: Verify target OS is RHEL 9
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution in ["RedHat", "CentOS", "Rocky", "AlmaLinux"]
+          - ansible_distribution_major_version | int >= 9
+        fail_msg: "This playbook targets RHEL 9-compatible OS. Got: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+        success_msg: "OS check passed: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      tags: [always]
+
+    - name: Record hardening start time
+      ansible.builtin.set_fact:
+        tabyaos_harden_start: "{{ ansible_date_time.iso8601 }}"
+      tags: [always]
+
+  roles:
+    # 1. CIS RHEL 9 Level 2 baseline (role in progress — Phase H)
+    # - role: cis-rhel9
+    #   tags: [cis_rhel9]
+
+    # 2. CIS Kubernetes Benchmark — Worker Node section
+    - role: cis-k8s-worker
+      tags: [cis_k8s]
+
+    # 3. Secure time synchronisation
+    - role: chrony-hardened
+      tags: [chrony, pci_dss]
+
+    # 4. AIDE file integrity monitoring
+    - role: aide
+      tags: [aide, pci_dss]
+
+    # 5. PCI-DSS v4.0 audit rules
+    - role: auditd-pci
+      tags: [auditd, pci_dss]
+
+    # 6. PCI-DSS v4.0 controls overlay
+    - role: pci-dss-v4
+      when: tabyaos_profile in ['pci_dss', 'full']
+      tags: [pci_dss]
+
+    # 7. SOC 2 Type II controls overlay
+    - role: soc2-cc6-cc7-cc8
+      when: tabyaos_profile in ['soc2', 'full']
+      tags: [soc2]
+
+    # 8. FIPS mode
+    - role: fips-mode
+      when: tabyaos_fips_enabled | default(false) | bool
+      tags: [fips]
+
+  post_tasks:
+    - name: Write hardening completion record
+      ansible.builtin.lineinfile:
+        path: /etc/tabyaos-release
+        line: "HardenedAt={{ tabyaos_harden_start }}"
+        create: true
+        owner: root
+        group: root
+        mode: "0644"
+      tags: [always]
+
+    - name: Hardening complete — print summary
+      ansible.builtin.debug:
+        msg:
+          - "=== TabyaOS RHEL 9 hardening complete ==="
+          - "Profile    : {{ tabyaos_profile }}"
+          - "Note: cis-rhel9 role pending (Phase H)"
+      tags: [always]

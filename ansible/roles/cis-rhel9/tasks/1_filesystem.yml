@@ -1,0 +1,115 @@
+---
+# CIS RHEL 9 — Section 1: Filesystem Configuration
+
+- name: "CIS RHEL9 1.1.1.1 | Disable cramfs"
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/cramfs.conf
+    content: "install cramfs /bin/true\nblacklist cramfs\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: cis_rhel9_disable_cramfs | default(true)
+
+- name: "CIS RHEL9 1.1.1.2 | Disable squashfs"
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/squashfs.conf
+    content: "install squashfs /bin/true\nblacklist squashfs\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: cis_rhel9_disable_squashfs | default(true)
+
+- name: "CIS RHEL9 1.1.1.3 | Disable udf"
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/udf.conf
+    content: "install udf /bin/true\nblacklist udf\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: cis_rhel9_disable_udf | default(true)
+
+- name: "CIS RHEL9 1.1.1.4 | Disable usb-storage"
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/usb-storage.conf
+    content: "install usb-storage /bin/true\nblacklist usb-storage\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: cis_rhel9_disable_usb_storage | default(true)
+
+- name: "CIS RHEL9 1.1.2 | Configure /tmp as tmpfs"
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/tmp.mount
+    content: |
+      [Unit]
+      Description=Temporary Directory /tmp
+      ConditionPathIsSymbolicLink=!/tmp
+      DefaultDependencies=no
+      Conflicts=umount.target
+      Before=local-fs.target umount.target
+      After=swap.target
+
+      [Mount]
+      What=tmpfs
+      Where=/tmp
+      Type=tmpfs
+      Options={{ cis_rhel9_tmp_mount_opts }}
+
+      [Install]
+      WantedBy=local-fs.target
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS RHEL9 1.1.2 | Enable tmp.mount"
+  ansible.builtin.systemd:
+    name: tmp.mount
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: cis_rhel9_manage_services | default(true)
+  failed_when: false
+
+- name: "CIS RHEL9 1.5.1 | Set core dump hard limit to 0"
+  ansible.builtin.copy:
+    dest: /etc/security/limits.d/99-cis-coredump.conf
+    content: "* hard core 0\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS RHEL9 1.5.2 | Enable ASLR"
+  ansible.posix.sysctl:
+    name: kernel.randomize_va_space
+    value: "2"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-cis-rhel9-aslr.conf
+    reload: true
+  when: cis_rhel9_aslr_enabled | default(true)
+
+- name: "CIS RHEL9 1.6.1 | Ensure SELinux is enforcing"
+  ansible.posix.selinux:
+    policy: targeted
+    state: enforcing
+  when: cis_rhel9_manage_services | default(true)
+  failed_when: false
+
+- name: "CIS RHEL9 1.7.2 | Set /etc/issue"
+  ansible.builtin.copy:
+    dest: /etc/issue
+    content: |
+      AUTHORIZED USE ONLY. This system is restricted to authorized users.
+      All activity is monitored and logged. Unauthorized access is prohibited.
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS RHEL9 1.7.3 | Set /etc/issue.net"
+  ansible.builtin.copy:
+    dest: /etc/issue.net
+    content: |
+      AUTHORIZED USE ONLY. This system is restricted to authorized users.
+      All activity is monitored and logged. Unauthorized access is prohibited.
+    owner: root
+    group: root
+    mode: "0644"

@@ -1,0 +1,55 @@
+---
+# CIS RHEL 9 — Section 6: System Maintenance
+
+- name: "CIS RHEL9 6.1.1 | /etc/passwd — mode 0644, root:root"
+  ansible.builtin.file:
+    path: /etc/passwd
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS RHEL9 6.1.2 | /etc/shadow — mode 0000, root:root"
+  ansible.builtin.file:
+    path: /etc/shadow
+    owner: root
+    group: root
+    mode: "0000"
+  failed_when: false
+
+- name: "CIS RHEL9 6.1.3 | /etc/group — mode 0644, root:root"
+  ansible.builtin.file:
+    path: /etc/group
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "CIS RHEL9 6.1.4 | /etc/gshadow — mode 0000, root:root"
+  ansible.builtin.file:
+    path: /etc/gshadow
+    owner: root
+    group: root
+    mode: "0000"
+  failed_when: false
+
+- name: "CIS RHEL9 6.1.5 | /etc/passwd- backup — mode 0600"
+  ansible.builtin.file:
+    path: /etc/passwd-
+    owner: root
+    group: root
+    mode: "0600"
+  failed_when: false
+
+- name: "CIS RHEL9 6.1.6 | /etc/shadow- backup — mode 0000"
+  ansible.builtin.file:
+    path: /etc/shadow-
+    owner: root
+    group: root
+    mode: "0000"
+  failed_when: false
+
+- name: "CIS RHEL9 6.1.13 | Find SUID/SGID executables (audit only)"
+  ansible.builtin.command:
+    cmd: find / -xdev -type f \( -perm -4000 -o -perm -2000 \)
+  register: suid_sgid_files
+  changed_when: false
+  failed_when: false

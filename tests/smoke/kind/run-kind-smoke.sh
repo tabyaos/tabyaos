@@ -25,8 +25,8 @@ TIMEOUT=300
 
 PASS=0; FAIL=0
 
-pass() { echo "  PASS  $1"; ((PASS++)); }
-fail() { echo "  FAIL  $1"; ((FAIL++)); }
+pass() { echo "  PASS  $1"; PASS=$((PASS + 1)); }
+fail() { echo "  FAIL  $1"; FAIL=$((FAIL + 1)); }
 header() { echo ""; echo "── $1 ──"; }
 
 while [[ $# -gt 0 ]]; do

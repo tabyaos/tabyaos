@@ -1,0 +1,20 @@
+---
+- name: Reload sysctl
+  ansible.posix.sysctl:
+    sysctl_file: /etc/sysctl.conf
+    reload: true
+  failed_when: false
+
+- name: Restart sshd
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+  when: cis_rhel9_manage_services | default(true)
+  failed_when: false
+
+- name: Restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+  when: cis_rhel9_manage_services | default(true)
+  failed_when: false

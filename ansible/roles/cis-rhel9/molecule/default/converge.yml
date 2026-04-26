@@ -1,0 +1,12 @@
+---
+- name: Converge — cis-rhel9
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    cis_rhel9_manage_services: false
+
+  roles:
+    - role: cis-rhel9
+      tags: [cis_rhel9]

@@ -1,0 +1,11 @@
+variable "aws_region"                  { type = string; default = "us-east-1" }
+variable "eks_version"                  { type = string; default = "1.31" }
+variable "instance_type_x86_64"         { type = string; default = "t3.medium" }
+variable "instance_type_arm64"          { type = string; default = "t4g.medium" }
+variable "ami_name_prefix"              { type = string; default = "tabyaos-rhel9" }
+variable "encrypt_boot"                 { type = bool;   default = true }
+variable "volume_size_gb"               { type = number; default = 20 }
+variable "subnet_id"                    { type = string; default = "" }
+variable "associate_public_ip_address"  { type = bool;   default = true }
+variable "kms_key_id"                   { type = string; default = "" }
+variable "tags"                         { type = map(string); default = {} }

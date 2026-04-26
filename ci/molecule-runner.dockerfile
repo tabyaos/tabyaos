@@ -34,7 +34,18 @@ RUN apt-get update -qq && \
          git \
          rsync \
          openssh-client \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # kind — for CI (GitHub Actions Linux runner)
+    && curl -fsSL https://kind.sigs.k8s.io/dl/v0.25.0/kind-linux-amd64 \
+       -o /usr/local/bin/kind \
+    && chmod +x /usr/local/bin/kind \
+    # k3d — for local Windows Docker Desktop (no cgroup nesting required)
+    && curl -fsSL https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh \
+       | TAG=v5.8.3 bash \
+    # kubectl
+    && curl -fsSL "https://dl.k8s.io/release/$(curl -fsSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+       -o /usr/local/bin/kubectl \
+    && chmod +x /usr/local/bin/kubectl
 
 # Pin versions for reproducibility; bump intentionally.
 RUN pip install --no-cache-dir \

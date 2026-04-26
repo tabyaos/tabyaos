@@ -14,8 +14,9 @@ CLUSTER_NAME="tabyaos-smoke"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
 PASS=0; FAIL=0
-pass() { echo "  PASS  $1"; ((PASS++)); }
-fail() { echo "  FAIL  $1"; ((FAIL++)); }
+# ((PASS++)) returns exit 1 when PASS=0 (arithmetic false) — breaks set -e
+pass() { echo "  PASS  $1"; PASS=$((PASS + 1)); }
+fail() { echo "  FAIL  $1"; FAIL=$((FAIL + 1)); }
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -44,11 +45,15 @@ echo ""
 echo "── 1. Create k3d cluster ──"
 k3d cluster delete "${CLUSTER_NAME}" 2>/dev/null || true
 
-if k3d cluster create "${CLUSTER_NAME}" --agents 0 --servers 1 --wait; then
+if k3d cluster create "${CLUSTER_NAME}" --agents 0 --servers 1 --api-port 6443 --wait; then
   pass "k3d cluster '${CLUSTER_NAME}' created"
 else
   fail "k3d cluster creation failed"; exit 1
 fi
+
+# k3d automatically updates ~/.kube/config on cluster creation — no manual
+# kubeconfig patching needed. The API server is exposed on host.docker.internal
+# when --api-port is specified.
 
 # ── 2. Node ready ──────────────────────────────────────────────────────────────
 echo "── 2. Node readiness ──"

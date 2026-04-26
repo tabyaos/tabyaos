@@ -7,7 +7,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+# Allow override via env var — needed when script is copied to /tmp (BASH_SOURCE != repo)
+REPO_ROOT="${REPO_ROOT:-$(cd "${SCRIPT_DIR}/../../.." && pwd)}"
 RESULTS_DIR="${REPO_ROOT}/tests/kube-bench/baseline"
 KEEP_CLUSTER=false
 CLUSTER_NAME="tabyaos-smoke"

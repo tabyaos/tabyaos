@@ -2,16 +2,19 @@
 
 **Every node, a redoubt.**
 
-An opinionated, hardened operating system for Kubernetes worker nodes. Ships with CIS Level 2, PCI-DSS v4.0, and SOC 2 Type II controls pre-applied and audit-traceable. Runs on EKS, OpenShift, bare-metal, and on-prem KVM.
+An opinionated, hardened operating system for Kubernetes worker nodes. Ships with CIS Level 2, PCI-DSS v4.0, and SOC 2 Type II controls pre-applied and audit-traceable. Runs on on-prem KVM, bare-metal, OCI environments, and AWS EKS.
 
 ## What you get
 
-- **Three base OS targets:** Amazon Linux 2023 (EKS), Debian 12 (on-prem/OpenShift), RHEL 9 (enterprise/FedRAMP).
+- **Three base OS targets:** Amazon Linux 2023, Debian 12 (on-prem/OpenShift), RHEL 9 (enterprise/FedRAMP).
 - **11 Ansible hardening roles** — all Molecule-tested (converge + idempotence + verify in Docker).
+- **Four artifact formats:** QCOW2 (KVM/on-prem), ISO (bare-metal), OCI image (container-native), AMI (AWS EKS).
 - **48 controls** mapped across CIS AL2023 L2, CIS Kubernetes v1.8, PCI-DSS v4.0, SOC 2 Type II, NIST 800-53.
 - Every control references its framework requirement (`# CIS AL2023 5.2.3`, `# PCI-DSS v4.0 Req 10.2.1.1`).
 - Cosign-signed releases with CycloneDX SBOMs.
 - kube-bench and OpenSCAP test suites in the box.
+
+Built for environments where data sovereignty matters — Turkish fintech, EU regulated infrastructure, and government-classified workloads where hyperscaler residency is a compliance risk.
 
 ## Why Tabya exists
 

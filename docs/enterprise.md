@@ -6,10 +6,10 @@ TabyaOS Enterprise adds support, long-term patch guarantees, and QSA-ready compl
 
 ### Open-Source Core (this repo)
 
-- All 9 hardening roles (CIS L2, PCI-DSS v4.0, SOC 2, FIPS, K8s)
-- Molecule test suite
-- Packer builds for AL2023 → AMI, QCOW2, ISO, OCI
-- machine-readable compliance mappings
+- All 11 hardening roles (CIS L2, PCI-DSS v4.0, SOC 2, FIPS, K8s, Debian 12, RHEL 9)
+- Molecule test suite (converge + idempotence + verify)
+- Packer builds → QCOW2 (KVM), ISO (bare-metal), OCI, AMI (AWS EKS)
+- Machine-readable compliance mappings (YAML + generated Markdown)
 - kube-bench / InSpec / OpenSCAP test harness
 - Community support via GitHub Issues
 

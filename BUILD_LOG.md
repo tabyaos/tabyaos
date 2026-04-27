@@ -173,3 +173,40 @@ kind v0.25.0 added to molecule-runner image. Cluster creation fails on Docker De
 - `CHANGELOG.md` — full v0.1.0-alpha changelog (all 9 roles, Packer, compliance, docs)
 - `VERSION` — `0.1.0-alpha`
 - `.github/workflows/release.yml` — added `workflow_dispatch` dry-run mode; build steps gated on `inputs.dry_run != true`; `packer validate` runs in dry-run path; alpha tag pattern added (`v[0-9]+.[0-9]+.[0-9]+-*`)
+
+---
+
+## Overnight Batch — 2026-04-28 (branch: overnight/2026-04-28-bbatch)
+
+**Approved by:** orhanozdogan at 01:10
+**Base commit:** 41157f9
+
+### Phase 1 — Strategic doc updates
+
+_Status: IN PROGRESS_
+
+### Phase 2 — Compliance audit expansion
+
+_Status: PENDING_
+
+### Phase 3 — Verifier quality re-audit
+
+_Status: PENDING_
+
+### Phase 4 — Tabya Attest CLI scaffold
+
+_Status: PENDING_
+
+### Phase 5 — Test pass
+
+_Status: PENDING_
+
+### Phase 6 — Final commit + morning report
+
+_Status: PENDING_
+
+---
+
+## Deferred / open items (overnight batch)
+
+_Updated as work proceeds._

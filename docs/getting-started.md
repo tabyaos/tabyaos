@@ -1,6 +1,6 @@
 # Getting Started with TabyaOS
 
-TabyaOS produces hardened AMIs and VM images for Kubernetes worker nodes. This guide walks through building your first image and verifying it passes compliance checks.
+TabyaOS produces hardened OS images for Kubernetes worker nodes — QCOW2 (KVM/on-prem), ISO (bare-metal), OCI, and AMI (AWS EKS). This guide walks through building your first image and verifying it passes compliance checks.
 
 ## Prerequisites
 

@@ -10,8 +10,9 @@
 
 TabyaOS is a **build toolkit + hardened image set**:
 
-- Packer HCL configurations for Amazon Linux 2023 (+ Debian 12, RHEL 9 roadmap)
-- 9 Ansible roles implementing CIS L2, PCI-DSS v4.0, SOC 2 Type II, and FIPS controls
+- Packer HCL configurations for Amazon Linux 2023, Debian 12, and RHEL 9
+- 11 Ansible roles implementing CIS L2, PCI-DSS v4.0, SOC 2 Type II, and FIPS controls
+- Four artifact formats: QCOW2 (KVM/on-prem), ISO (bare-metal), OCI, AMI (AWS EKS)
 - kube-bench / InSpec / OpenSCAP test suites
 - GitHub Actions pipelines with Cosign-signed releases and SBOM
 
@@ -21,7 +22,7 @@ TabyaOS is a **build toolkit + hardened image set**:
 |---------|-----------------|
 | "Which CIS controls are applied?" | Every Ansible task references its CIS/PCI/SOC2 requirement ID |
 | "Can my QSA verify this?" | Cosign-signed SBOM + kube-bench/InSpec evidence bundle per build |
-| "Does it work on EKS / OpenShift / bare-metal?" | Multi-format: AMI, QCOW2, ISO, OCI |
+| "Does it work on KVM / bare-metal / EKS?" | Multi-format: QCOW2, ISO, OCI, AMI |
 | "What if there's a CVE?" | Enterprise LTS: 18-month patch guarantee, 48h critical CVE SLA |
 
 ## Compliance Coverage

@@ -48,6 +48,41 @@ Primary: fintech / card-issuing / BaaS platforms running Kubernetes — hybrid o
 
 Secondary (broader open-source reach): any regulated K8s operator (healthcare, gov-adjacent, DORA-exposed EU operators).
 
+## Strategic positioning (updated 2026-04-28)
+
+**Company vs. product:** Tabya is the parent company. TabyaOS is the flagship product. Future products under the Tabya umbrella:
+- **Tabya Attest** — standalone compliance evidence CLI; generates, signs, and bundles kube-bench + InSpec reports without rebuilding the image.
+- **Tabya Stack** — opinionated Terraform + Helm bundle that deploys a TabyaOS-backed K8s cluster with compliant networking defaults.
+- **Tabya Watch** — continuous compliance monitor; diffs running cluster state against the TabyaOS baseline and alerts on drift.
+
+**Go-to-market priority order (updated):**
+1. Turkish fintech and sovereign-infrastructure operators — BDDK İYBT 2020-9 and KVKK require data residency on Turkish soil. AWS-first messaging does not close these deals. On-prem KVM/bare-metal with QCOW2/ISO artifacts is the primary pitch.
+2. EMEA regulated K8s operators — DORA-exposed EU fintechs, healthcare, government-adjacent workloads where hyperscaler lock-in is a compliance risk.
+3. AWS EKS customers (global) — secondary, addressed via AMI artifact. Not the lead anymore.
+4. AWS Marketplace — deferred to post-LLC. Not the current GTM.
+
+**Artifact format priority order (updated):**
+1. QCOW2 (KVM / on-prem) — primary for Turkish DC operators and sovereign-infra customers.
+2. ISO (bare-metal) — physical infrastructure, air-gapped environments.
+3. OCI image — container-native deployments, Flatcar/immutable-OS patterns.
+4. AMI (AWS EKS) — remains supported; not deprecated; just no longer the lead.
+
+**Design partner pipeline:**
+- Imminent conversation with a Turkish datacenter operator. Partnership model: DC operator resells or co-sells TabyaOS-powered K8s nodes to their tenants. Tabya provides the hardened image + compliance overlay; DC provides the infrastructure and customer relationship.
+- Do NOT build a hyperscaler clone. Tabya's competitive position is compliance depth, not infrastructure breadth.
+
+**Planned framework overlays (not yet implemented):**
+- **BDDK İYBT 2020-9** — Turkish Banking Regulation and Supervision Agency information systems governance directive. Required for BRSA-licensed payment institutions and banks.
+- **KVKK** — Turkish Personal Data Protection Law. Required for any Turkish-domiciled data processor.
+- **DORA** — EU Digital Operational Resilience Act. Required for EU financial entities from Jan 2025.
+- All overlays: scaffold first with `# REQUIRES_LEGAL_REVIEW: true` flags; no certification claims until reviewed by licensed counsel.
+
+**Product positioning vs. alternatives:**
+- Bottlerocket: locked-down container runtime OS; cannot be audited at the Ansible-task level; no PCI-DSS evidence chain. Different product category.
+- Chainguard: distroless/minimal-OS focus; no PCI-DSS evidence chain for K8s worker nodes.
+- Manual hardening scripts: no idempotency, no machine-readable mappings, no test suite, no signed artifacts.
+- TabyaOS is the only open-source, multi-framework, idempotency-verified, Cosign-signed hardening toolkit for K8s worker nodes with traceable compliance evidence.
+
 Initial commercial ACV: $500–$1,500 / month per cluster for enterprise support. Target at 18 months: 10–20 paying accounts = $10–25k MRR.
 
 ## Why self-release first, marketplace later
@@ -110,6 +145,7 @@ If by Month 9 none of the following are true, pivot or shut down:
 - ≥ 3 unsolicited enterprise support inquiries
 - ≥ 1 signed design partner (paid or unpaid but with reference rights)
 - ≥ 1 QSA firm has indicated willingness to accept TabyaOS attestation in audits
+- **On-prem pivot kill condition:** < 2 paying design partners AND < 50 LinkedIn/email inbound contacts from on-prem operators by Month 9 → consider pivoting to Tabya Attest as the standalone product, dropping the full OS image build complexity.
 
 ## Open questions (decide when relevant)
 

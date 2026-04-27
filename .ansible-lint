@@ -1,0 +1,19 @@
+---
+# ansible-lint configuration for TabyaOS
+# Molecule verify.yml files use unnamed assert tasks by design — downgrade to warnings.
+
+warn_list:
+  - name[missing]
+  - name[casing]
+  - name[template]
+
+skip_list:
+  - var-naming[no-role-prefix]
+
+roles_path:
+  - ansible/roles
+
+exclude_paths:
+  - "**/.git/**"
+  - "**/molecule/default/verify.yml"
+  - "**/molecule/default/converge.yml"

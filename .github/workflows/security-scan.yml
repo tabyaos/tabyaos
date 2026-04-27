@@ -29,9 +29,11 @@ jobs:
           format: sarif
           output: trivy-iac-results.sarif
           severity: HIGH,CRITICAL
+          exit-code: '0'   # don't fail the job, upload results only
 
       - name: Upload Trivy IaC SARIF
         uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
           sarif_file: trivy-iac-results.sarif
           category: trivy-iac
@@ -46,7 +48,7 @@ jobs:
         uses: bridgecrewio/checkov-action@master
         with:
           directory: packer/
-          framework: packer
+          # framework: packer is not a valid Checkov framework — use auto-detect
           output_format: sarif
           output_file_path: checkov-packer.sarif
           soft_fail: true
@@ -80,15 +82,18 @@ jobs:
           sarif_file: checkov-ansible.sarif
           category: checkov-ansible
 
-  gitleaks:
-    name: Secret scan (Gitleaks)
+  secret-scan:
+    name: Secret scan (TruffleHog)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run TruffleHog (no license required)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified

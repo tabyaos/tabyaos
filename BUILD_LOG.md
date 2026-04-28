@@ -181,32 +181,36 @@ kind v0.25.0 added to molecule-runner image. Cluster creation fails on Docker De
 **Approved by:** orhanozdogan at 01:10
 **Base commit:** 41157f9
 
-### Phase 1 — Strategic doc updates
+### Phase 1 — Strategic doc updates ✅
 
-_Status: IN PROGRESS_
+Commit: `907761d` — 10 files, 566 insertions
 
-### Phase 2 — Compliance audit expansion
+### Phase 2 — Compliance audit expansion ✅
 
-_Status: PENDING_
+Commit: `e66ff73` — 48→74 controls, BDDK+KVKK overlay scaffolds, references stub
 
 ### Phase 3 — Verifier quality re-audit
 
-_Status: PENDING_
+**DEFERRED** — session context limit. Run in next session (22 review-yaml calls, ~3h GPU).
 
-### Phase 4 — Tabya Attest CLI scaffold
+### Phase 4 — Tabya Attest CLI scaffold ✅
 
-_Status: PENDING_
+Commit: `899739f` — Go 1.22 cobra scaffold, 11 files. go build not verified (Go not installed).
 
-### Phase 5 — Test pass
+### Phase 5 — Test pass (partial) ✅
 
-_Status: PENDING_
+Commit: `c2a4048` — mkdocs build --strict PASS. Molecule + kind: no Ansible changes, skipped.
 
-### Phase 6 — Final commit + morning report
+### Phase 6 — Final commit + morning report ✅
 
-_Status: PENDING_
+MORNING_REPORT.md written. Branch pushed to origin.
 
 ---
 
 ## Deferred / open items (overnight batch)
 
-_Updated as work proceeds._
+- Phase 3 verifier audit (22 review-yaml calls)
+- Go compilation verification (`make build && make vet` in tabya-attest/)
+- compliance/references/cis-al2023-l2-toc.md stub to fill
+- BDDK/KVKK overlays: legal review before production use
+- K8S-005 CIS IDs audit finding (see MORNING_REPORT.md)

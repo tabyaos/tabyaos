@@ -1,0 +1,710 @@
+---
+# TabyaOS control-to-requirement mapping
+# Machine-readable cross-framework map.
+# Format: each entry maps a TabyaOS control (role + task) to one or more framework requirements.
+
+schema_version: "1.0"
+generated: "2026-04-22"
+frameworks:
+  - CIS_AL2023_L2
+  - CIS_Debian12_L2
+  - CIS_K8s_v1.8
+  - PCI_DSS_v4.0
+  - SOC2_TSC
+  - NIST_800-53_Rev5
+
+controls:
+
+  # ── Filesystem ──────────────────────────────────────────────────────────────
+  - id: FS-001
+    title: Disable unused filesystems (cramfs, squashfs, udf, usb-storage)
+    ansible_role: cis-l2
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      CIS_AL2023_L2: [1.1.1.1, 1.1.1.2, 1.1.1.3, 1.1.1.4]
+      PCI_DSS_v4.0: ["2.2.1"]
+      NIST_800-53_Rev5: [CM-7]
+
+  - id: FS-002
+    title: Secure /tmp mount with noexec,nosuid,nodev
+    ansible_role: cis-l2
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      CIS_AL2023_L2: [1.1.2.2, 1.1.2.3, 1.1.2.4]
+      PCI_DSS_v4.0: ["2.2.1"]
+
+  - id: FS-003
+    title: Enable ASLR
+    ansible_role: cis-l2
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      CIS_AL2023_L2: [1.5.2]
+      NIST_800-53_Rev5: [SI-16]
+
+  - id: FS-004
+    title: Enable SELinux in enforcing mode (targeted policy)
+    ansible_role: cis-l2
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      CIS_AL2023_L2: [1.6.1.2, 1.6.1.3]
+      PCI_DSS_v4.0: ["2.2.1", "6.3.1"]
+      SOC2_TSC: [CC6.1, CC6.8]
+      NIST_800-53_Rev5: [AC-3, AC-6]
+
+  # ── Services ─────────────────────────────────────────────────────────────────
+  - id: SVC-001
+    title: Remove unnecessary network services
+    ansible_role: cis-l2
+    ansible_task: tasks/2_services.yml
+    frameworks:
+      CIS_AL2023_L2: [2.2.1-2.2.21]
+      PCI_DSS_v4.0: ["1.3.1", "2.2.1"]
+      SOC2_TSC: [CC6.6]
+      NIST_800-53_Rev5: [CM-7]
+
+  # ── Network ──────────────────────────────────────────────────────────────────
+  - id: NET-001
+    title: Disable uncommon network protocols (DCCP, SCTP, RDS, TIPC)
+    ansible_role: cis-l2
+    ansible_task: tasks/3_network.yml
+    frameworks:
+      CIS_AL2023_L2: [3.4.1, 3.4.2, 3.4.3, 3.4.4]
+      PCI_DSS_v4.0: ["1.3.1"]
+      NIST_800-53_Rev5: [CM-7]
+
+  - id: NET-002
+    title: Harden IPv4 kernel network parameters
+    ansible_role: cis-l2
+    ansible_task: tasks/3_network.yml
+    frameworks:
+      CIS_AL2023_L2: [3.2.1, 3.2.2, 3.2.3, 3.2.4, 3.2.5, 3.2.6, 3.3.1, 3.3.2, 3.3.3]
+      PCI_DSS_v4.0: ["1.3.2"]
+      NIST_800-53_Rev5: [SC-5, SC-7]
+
+  # ── Logging & Auditing ────────────────────────────────────────────────────────
+  - id: LOG-001
+    title: Configure auditd with retention and disk-full actions
+    ansible_role: cis-l2
+    ansible_task: tasks/4_logging.yml
+    frameworks:
+      CIS_AL2023_L2: [4.1.2.1, 4.1.2.2, 4.1.2.3, 4.1.2.4, 4.1.2.5, 4.1.2.6, 4.1.2.7]
+      PCI_DSS_v4.0: ["10.5.1", "10.7.1"]
+      SOC2_TSC: [CC7.1, CC7.2]
+      NIST_800-53_Rev5: [AU-4, AU-5]
+
+  - id: LOG-002
+    title: Deploy CIS baseline audit rules (identity, sudo, privileged commands, mounts)
+    ansible_role: cis-l2
+    ansible_task: tasks/4_logging.yml
+    frameworks:
+      CIS_AL2023_L2: [4.1.3.1, 4.1.3.2, 4.1.3.4, 4.1.3.5, 4.1.3.7, 4.1.3.9, 4.1.3.10, 4.1.3.11, 4.1.3.12]
+      PCI_DSS_v4.0: ["10.2.1.1", "10.2.1.2", "10.2.1.5", "10.2.1.7"]
+      SOC2_TSC: [CC7.2, CC7.3]
+      NIST_800-53_Rev5: [AU-2, AU-12]
+
+  - id: LOG-003
+    title: Deploy PCI-DSS-specific audit rules (cardholder data, authentication mechanisms)
+    ansible_role: auditd-pci
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["10.2.1.1", "10.2.1.2", "10.2.1.3", "10.2.1.4", "10.2.1.5", "10.2.1.6", "10.2.1.7", "10.2.2", "10.3.2"]
+      SOC2_TSC: [CC7.2]
+      NIST_800-53_Rev5: [AU-2, AU-12, SI-4]
+
+  # ── Access & Authentication ───────────────────────────────────────────────────
+  - id: ACC-001
+    title: Harden SSH configuration (ciphers, MACs, protocol, auth)
+    ansible_role: cis-l2
+    ansible_task: tasks/5_access.yml
+    frameworks:
+      CIS_AL2023_L2: [5.2.1-5.2.23]
+      PCI_DSS_v4.0: ["8.2.1", "8.3.6"]
+      SOC2_TSC: [CC6.1, CC6.2]
+      NIST_800-53_Rev5: [AC-17, IA-2, SC-8]
+
+  - id: ACC-002
+    title: Configure PAM password complexity and account lockout
+    ansible_role: cis-l2
+    ansible_task: tasks/5_access.yml
+    frameworks:
+      CIS_AL2023_L2: [5.3.1, 5.3.2, 5.3.3]
+      PCI_DSS_v4.0: ["8.3.4", "8.3.6"]
+      SOC2_TSC: [CC6.1]
+      NIST_800-53_Rev5: [AC-7, IA-5]
+
+  - id: ACC-003
+    title: Set session idle timeout
+    ansible_role: cis-l2
+    ansible_task: tasks/5_access.yml
+    frameworks:
+      CIS_AL2023_L2: [5.4.5]
+      PCI_DSS_v4.0: ["8.2.8"]
+      SOC2_TSC: [CC6.1]
+      NIST_800-53_Rev5: [AC-11]
+
+  # ── Time Synchronisation ──────────────────────────────────────────────────────
+  - id: TIME-001
+    title: Configure chronyd with Amazon Time Sync Service
+    ansible_role: chrony-hardened
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_AL2023_L2: [2.1.x]
+      PCI_DSS_v4.0: ["10.6.1", "10.6.2", "10.6.3"]
+      SOC2_TSC: [CC7.1]
+      NIST_800-53_Rev5: [AU-8]
+
+  # ── File Integrity ────────────────────────────────────────────────────────────
+  - id: FIM-001
+    title: AIDE file integrity monitoring
+    ansible_role: aide
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_AL2023_L2: [1.3.1, 1.3.2, 1.3.3]
+      PCI_DSS_v4.0: ["11.3.1", "11.3.2"]
+      SOC2_TSC: [CC6.8, CC7.2]
+      NIST_800-53_Rev5: [SI-7]
+
+  # ── Kubernetes Worker ─────────────────────────────────────────────────────────
+  - id: K8S-001
+    title: Disable kubelet anonymous authentication
+    ansible_role: cis-k8s-worker
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_K8s_v1.8: [4.2.1]
+      PCI_DSS_v4.0: ["7.2.1"]
+      NIST_800-53_Rev5: [AC-3, IA-2]
+
+  - id: K8S-002
+    title: Disable kubelet read-only port
+    ansible_role: cis-k8s-worker
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_K8s_v1.8: [4.2.4]
+      PCI_DSS_v4.0: ["1.3.1"]
+      NIST_800-53_Rev5: [CM-7]
+
+  - id: K8S-003
+    title: Enable kubelet protect-kernel-defaults
+    ansible_role: cis-k8s-worker
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_K8s_v1.8: [4.2.6]
+      NIST_800-53_Rev5: [CM-6]
+
+  - id: K8S-004
+    title: Set kubelet TLS minimum version and cipher suites
+    ansible_role: cis-k8s-worker
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_K8s_v1.8: [4.2.12]
+      PCI_DSS_v4.0: ["4.2.1"]
+      SOC2_TSC: [CC6.7]
+      NIST_800-53_Rev5: [SC-8, SC-28]
+
+  - id: ACC-004
+    title: Restrict sudo — require password, log all sudo usage
+    ansible_role: pci-dss-v4
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["7.2.1", "7.2.2", "8.2.4"]
+      SOC2_TSC: [CC6.1, CC6.3]
+      NIST_800-53_Rev5: [AC-6, AU-2]
+
+  - id: ACC-005
+    title: Lock inactive user accounts after inactivity period
+    ansible_role: pci-dss-v4
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["8.2.6", "8.2.7"]
+      SOC2_TSC: [CC6.2]
+      NIST_800-53_Rev5: [AC-2]
+
+  - id: ACC-006
+    title: Set session idle timeout (PCI-DSS 900 seconds)
+    ansible_role: pci-dss-v4
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["8.2.8"]
+      SOC2_TSC: [CC6.1]
+      NIST_800-53_Rev5: [AC-11]
+
+  # ── FIPS ─────────────────────────────────────────────────────────────────────
+  - id: FIPS-001
+    title: Enable FIPS 140-2/3 mode (kernel crypto + OpenSSL FIPS provider)
+    ansible_role: fips-mode
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["4.2.1", "6.3.1"]
+      SOC2_TSC: [CC6.1, CC6.7]
+      NIST_800-53_Rev5: [SC-12, SC-13, IA-7]
+
+  - id: FIPS-002
+    title: Set OS crypto policy to FIPS via update-crypto-policies
+    ansible_role: fips-mode
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["4.2.1"]
+      NIST_800-53_Rev5: [SC-12, SC-13]
+
+  # ── Kernel Hardening ──────────────────────────────────────────────────────────
+  - id: KERN-001
+    title: Restrict kernel dmesg (dmesg_restrict=1)
+    ansible_role: pci-dss-v4
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["2.2.5"]
+      NIST_800-53_Rev5: [CM-6, SI-3]
+
+  - id: KERN-002
+    title: Restrict kernel pointer exposure (kptr_restrict=2)
+    ansible_role: pci-dss-v4
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["2.2.5"]
+      NIST_800-53_Rev5: [CM-6, SI-3]
+
+  - id: KERN-003
+    title: Disable Bluetooth kernel module
+    ansible_role: pci-dss-v4
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["2.2.4", "1.3.1"]
+      NIST_800-53_Rev5: [CM-7]
+
+  # ── SOC 2 CC6/CC7 ─────────────────────────────────────────────────────────────
+  - id: SOC2-001
+    title: Protect /etc/shadow (mode 0000)
+    ansible_role: soc2-cc6-cc7-cc8
+    ansible_task: tasks/main.yml
+    frameworks:
+      SOC2_TSC: [CC6.1]
+      PCI_DSS_v4.0: ["8.2.1"]
+      NIST_800-53_Rev5: [AC-3, IA-5]
+
+  - id: SOC2-002
+    title: Enable login history via pam_lastlog
+    ansible_role: soc2-cc6-cc7-cc8
+    ansible_task: tasks/main.yml
+    frameworks:
+      SOC2_TSC: [CC6.2]
+      PCI_DSS_v4.0: ["10.2.1.5"]
+      NIST_800-53_Rev5: [AC-9, AU-14]
+
+  - id: SOC2-003
+    title: Block ICMP redirects (accept_redirects=0)
+    ansible_role: soc2-cc6-cc7-cc8
+    ansible_task: tasks/main.yml
+    frameworks:
+      SOC2_TSC: [CC6.6]
+      PCI_DSS_v4.0: ["1.3.2"]
+      NIST_800-53_Rev5: [SC-5, SC-7]
+
+  - id: SOC2-004
+    title: Deploy SOC2 CC7 audit rules (kubectl, shell exec, interpreter exec)
+    ansible_role: soc2-cc6-cc7-cc8
+    ansible_task: tasks/main.yml
+    frameworks:
+      SOC2_TSC: [CC7.2]
+      PCI_DSS_v4.0: ["10.2.1.1", "10.2.1.7"]
+      NIST_800-53_Rev5: [AU-2, AU-12, SI-4]
+
+  - id: SOC2-005
+    title: Configure rsyslog authpriv logging to /var/log/secure
+    ansible_role: soc2-cc6-cc7-cc8
+    ansible_task: tasks/main.yml
+    frameworks:
+      SOC2_TSC: [CC7.2]
+      PCI_DSS_v4.0: ["10.3.1", "10.5.1"]
+      NIST_800-53_Rev5: [AU-3, AU-9]
+
+  # ── SSM-Only Access ───────────────────────────────────────────────────────────
+  - id: SSM-001
+    title: Disable SSH — enforce SSM Session Manager for node access
+    ansible_role: ssm-only-access
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["8.2.1", "8.2.3"]
+      SOC2_TSC: [CC6.1, CC6.2]
+      NIST_800-53_Rev5: [AC-17, CM-7]
+
+  - id: SSM-002
+    title: Block TCP port 22 via iptables — no SSH ingress possible
+    ansible_role: ssm-only-access
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["1.3.1", "8.2.1"]
+      SOC2_TSC: [CC6.6]
+      NIST_800-53_Rev5: [CM-7, SC-7]
+
+  # ── Kubernetes Worker additional ──────────────────────────────────────────────
+  - id: K8S-005
+    title: Deploy hardened containerd config (SystemdCgroup, seccomp)
+    ansible_role: cis-k8s-worker
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_K8s_v1.8: [5.1.3, 5.2.1]
+      PCI_DSS_v4.0: ["2.2.1", "6.3.1"]
+      NIST_800-53_Rev5: [CM-6, CM-7]
+
+  - id: K8S-006
+    title: Ensure kubelet service file permissions are 600
+    ansible_role: cis-k8s-worker
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_K8s_v1.8: [4.1.1]
+      PCI_DSS_v4.0: ["2.2.1"]
+      NIST_800-53_Rev5: [AC-3]
+
+  - id: K8S-007
+    title: Set kubelet authorization mode to Webhook
+    ansible_role: cis-k8s-worker
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_K8s_v1.8: [4.2.2]
+      PCI_DSS_v4.0: ["7.2.1"]
+      NIST_800-53_Rev5: [AC-3, IA-2]
+
+  - id: K8S-008
+    title: Enable kubelet certificate rotation
+    ansible_role: cis-k8s-worker
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_K8s_v1.8: [4.2.11]
+      PCI_DSS_v4.0: ["4.2.1", "6.3.1"]
+      SOC2_TSC: [CC6.7]
+      NIST_800-53_Rev5: [SC-12, IA-5]
+
+  # ── SOC 2 CC8 Change Management ───────────────────────────────────────────────
+  - id: CM-001
+    title: Immutable AMI change management — all changes via signed Packer build
+    ansible_role: soc2-cc6-cc7-cc8
+    ansible_task: tasks/main.yml
+    frameworks:
+      SOC2_TSC: [CC8.1]
+      PCI_DSS_v4.0: ["6.5.1"]
+      NIST_800-53_Rev5: [CM-3, CM-5]
+
+  - id: CM-002
+    title: Write node metadata marker for audit trail
+    ansible_role: fips-mode
+    ansible_task: tasks/main.yml
+    frameworks:
+      PCI_DSS_v4.0: ["6.5.1", "10.3.1"]
+      SOC2_TSC: [CC8.1]
+      NIST_800-53_Rev5: [CM-3]
+
+  # ── Debian 12 CIS L2 ────────────────────────────────────────────────────────
+  - id: DEB-001
+    title: Disable unused filesystems (cramfs, squashfs, udf, usb-storage) — Debian 12
+    ansible_role: cis-debian12
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      CIS_Debian12_L2: ["1.1.1.1", "1.1.1.2", "1.1.1.3", "1.1.1.4"]
+      PCI_DSS_v4.0: ["2.2.1"]
+      NIST_800-53_Rev5: [CM-7]
+
+  - id: DEB-002
+    title: Secure /tmp as tmpfs with noexec,nosuid,nodev — Debian 12
+    ansible_role: cis-debian12
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      CIS_Debian12_L2: ["1.1.2"]
+      PCI_DSS_v4.0: ["2.2.1"]
+
+  - id: DEB-003
+    title: Enable ASLR (kernel.randomize_va_space=2) — Debian 12
+    ansible_role: cis-debian12
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      CIS_Debian12_L2: ["1.5.2"]
+      PCI_DSS_v4.0: ["2.2.5"]
+      NIST_800-53_Rev5: [SI-16]
+
+  - id: DEB-004
+    title: Enable AppArmor enforcing mode — Debian 12
+    ansible_role: cis-debian12
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      CIS_Debian12_L2: ["1.6.1", "1.6.2", "1.6.3"]
+      PCI_DSS_v4.0: ["2.2.3"]
+      NIST_800-53_Rev5: [AC-3, SI-7]
+
+  - id: DEB-005
+    title: Disable unused network protocols (DCCP, SCTP, RDS) — Debian 12
+    ansible_role: cis-debian12
+    ansible_task: tasks/3_network.yml
+    frameworks:
+      CIS_Debian12_L2: ["3.1.1", "3.1.2", "3.1.3"]
+      PCI_DSS_v4.0: ["1.2.5"]
+      NIST_800-53_Rev5: [CM-7, SC-7]
+
+  - id: DEB-006
+    title: Network sysctl hardening — send/accept redirects disabled — Debian 12
+    ansible_role: cis-debian12
+    ansible_task: tasks/3_network.yml
+    frameworks:
+      CIS_Debian12_L2: ["3.2.1", "3.2.2", "3.2.3"]
+      PCI_DSS_v4.0: ["1.3.2", "1.3.4"]
+      NIST_800-53_Rev5: [SC-5, SC-7]
+
+  - id: DEB-007
+    title: SSH hardening — ciphers, MACs, auth settings — Debian 12
+    ansible_role: cis-debian12
+    ansible_task: tasks/5_access.yml
+    frameworks:
+      CIS_Debian12_L2: ["5.2.3", "5.2.4", "5.2.5", "5.2.6", "5.2.7", "5.2.8"]
+      PCI_DSS_v4.0: ["2.2.7", "8.2.6"]
+      SOC2_TSC: [CC6.1, CC6.7]
+      NIST_800-53_Rev5: [AC-17, IA-2, SC-8]
+
+  - id: DEB-008
+    title: PAM faillock — account lockout after 5 failed attempts — Debian 12
+    ansible_role: cis-debian12
+    ansible_task: tasks/5_access.yml
+    frameworks:
+      CIS_Debian12_L2: ["5.3.2"]
+      PCI_DSS_v4.0: ["8.3.4"]
+      SOC2_TSC: [CC6.1]
+      NIST_800-53_Rev5: [AC-7]
+
+  - id: DEB-009
+    title: Remove unnecessary network services — Debian 12
+    ansible_role: cis-debian12
+    ansible_task: tasks/2_services.yml
+    frameworks:
+      CIS_Debian12_L2: ["2.1.1", "2.2.1", "2.3.1"]
+      PCI_DSS_v4.0: ["2.2.1", "1.3.1"]
+      NIST_800-53_Rev5: [CM-7]
+
+  - id: DEB-010
+    title: Configure auditd with PCI-DSS audit rules — Debian 12
+    ansible_role: cis-debian12
+    ansible_task: tasks/4_logging.yml
+    frameworks:
+      CIS_Debian12_L2: ["4.1.1", "4.1.2", "4.1.3"]
+      PCI_DSS_v4.0: ["10.2.1.1", "10.2.1.2", "10.5.1", "10.7.1"]
+      SOC2_TSC: [CC7.1, CC7.2]
+      NIST_800-53_Rev5: [AU-2, AU-4, AU-12]
+
+  - id: DEB-011
+    title: System file permissions and local user hygiene — Debian 12
+    ansible_role: cis-debian12
+    ansible_task: tasks/6_maintenance.yml
+    frameworks:
+      CIS_Debian12_L2: ["6.1.1", "6.1.2", "6.1.3", "6.1.4", "6.2.1", "6.2.5"]
+      PCI_DSS_v4.0: ["2.2.1"]
+      SOC2_TSC: [CC6.1]
+      NIST_800-53_Rev5: [AC-3, IA-5]
+
+  # ── CIS RHEL 9 L2 ────────────────────────────────────────────────────────────
+  - id: RHEL-001
+    title: Disable unused filesystems (cramfs, squashfs, udf, usb-storage) — RHEL 9
+    ansible_role: cis-rhel9
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      PCI_DSS_v4.0: ["2.2.1"]
+      NIST_800-53_Rev5: [CM-7]
+
+  - id: RHEL-002
+    title: Secure /tmp as tmpfs with noexec,nosuid,nodev — RHEL 9
+    ansible_role: cis-rhel9
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      PCI_DSS_v4.0: ["2.2.1"]
+      NIST_800-53_Rev5: [CM-7]
+
+  - id: RHEL-003
+    title: Enable ASLR (kernel.randomize_va_space=2) — RHEL 9
+    ansible_role: cis-rhel9
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      PCI_DSS_v4.0: ["2.2.5"]
+      NIST_800-53_Rev5: [SI-16]
+
+  - id: RHEL-004
+    title: Enable SELinux in enforcing mode — RHEL 9
+    ansible_role: cis-rhel9
+    ansible_task: tasks/1_filesystem.yml
+    frameworks:
+      PCI_DSS_v4.0: ["2.2.1", "6.3.1"]
+      SOC2_TSC: [CC6.1, CC6.8]
+      NIST_800-53_Rev5: [AC-3, AC-6]
+
+  - id: RHEL-005
+    title: Remove unnecessary network services — RHEL 9
+    ansible_role: cis-rhel9
+    ansible_task: tasks/2_services.yml
+    frameworks:
+      PCI_DSS_v4.0: ["2.2.1", "1.3.1"]
+      NIST_800-53_Rev5: [CM-7]
+
+  - id: RHEL-006
+    title: Disable uncommon network protocols and harden sysctl network params — RHEL 9
+    ansible_role: cis-rhel9
+    ansible_task: tasks/3_network.yml
+    frameworks:
+      PCI_DSS_v4.0: ["1.2.5", "1.3.2"]
+      NIST_800-53_Rev5: [CM-7, SC-5, SC-7]
+
+  - id: RHEL-007
+    title: Configure auditd with PCI-DSS audit rules — RHEL 9
+    ansible_role: cis-rhel9
+    ansible_task: tasks/4_logging.yml
+    frameworks:
+      PCI_DSS_v4.0: ["10.2.1.1", "10.2.1.2", "10.5.1", "10.7.1"]
+      SOC2_TSC: [CC7.1, CC7.2]
+      NIST_800-53_Rev5: [AU-2, AU-4, AU-12]
+
+  - id: RHEL-008
+    title: SSH hardening — ciphers, MACs, auth settings — RHEL 9
+    ansible_role: cis-rhel9
+    ansible_task: tasks/5_access.yml
+    frameworks:
+      PCI_DSS_v4.0: ["2.2.7", "8.2.6", "8.3.4"]
+      SOC2_TSC: [CC6.1, CC6.7]
+      NIST_800-53_Rev5: [AC-17, IA-2, SC-8]
+
+  - id: RHEL-009
+    title: PAM faillock and password quality — RHEL 9
+    ansible_role: cis-rhel9
+    ansible_task: tasks/5_access.yml
+    frameworks:
+      PCI_DSS_v4.0: ["8.3.4", "8.3.6"]
+      SOC2_TSC: [CC6.1]
+      NIST_800-53_Rev5: [AC-7, IA-5]
+
+  - id: RHEL-010
+    title: System file permissions and local user hygiene — RHEL 9
+    ansible_role: cis-rhel9
+    ansible_task: tasks/6_maintenance.yml
+    frameworks:
+      PCI_DSS_v4.0: ["2.2.1"]
+      SOC2_TSC: [CC6.1]
+      NIST_800-53_Rev5: [AC-3, IA-5]
+
+  # ── CIS AL2023 Section 6 — System Maintenance ─────────────────────────────
+  - id: MAINT-001
+    title: Ensure permissions on /etc/passwd are 644 root:root
+    ansible_role: cis-l2
+    ansible_task: tasks/6_maintenance.yml
+    frameworks:
+      CIS_AL2023_L2: ["6.1.1"]
+      PCI_DSS_v4.0: ["2.2.1"]
+      SOC2_TSC: [CC6.1]
+      NIST_800-53_Rev5: [AC-3, IA-5]
+
+  - id: MAINT-002
+    title: Ensure permissions on /etc/shadow are 0000 root:root
+    ansible_role: cis-l2
+    ansible_task: tasks/6_maintenance.yml
+    frameworks:
+      CIS_AL2023_L2: ["6.1.2"]
+      PCI_DSS_v4.0: ["2.2.1", "8.2.1"]
+      SOC2_TSC: [CC6.1]
+      NIST_800-53_Rev5: [AC-3, IA-5]
+
+  - id: MAINT-003
+    title: Ensure permissions on /etc/group and /etc/gshadow are correct
+    ansible_role: cis-l2
+    ansible_task: tasks/6_maintenance.yml
+    frameworks:
+      CIS_AL2023_L2: ["6.1.3", "6.1.4"]
+      PCI_DSS_v4.0: ["2.2.1"]
+      NIST_800-53_Rev5: [AC-3]
+
+  - id: MAINT-004
+    title: Ensure no world-writable files exist
+    ansible_role: cis-l2
+    ansible_task: tasks/6_maintenance.yml
+    frameworks:
+      CIS_AL2023_L2: ["6.1.8"]
+      PCI_DSS_v4.0: ["2.2.1", "6.3.1"]
+      SOC2_TSC: [CC6.1]
+      NIST_800-53_Rev5: [AC-3, CM-6]
+
+  - id: MAINT-005
+    title: Ensure no unexpected SUID/SGID executables exist
+    ansible_role: cis-l2
+    ansible_task: tasks/6_maintenance.yml
+    frameworks:
+      CIS_AL2023_L2: ["6.1.10", "6.1.11"]
+      PCI_DSS_v4.0: ["2.2.5", "6.3.1"]
+      SOC2_TSC: [CC6.8]
+      NIST_800-53_Rev5: [AC-6, CM-6]
+
+  - id: MAINT-006
+    title: Ensure sticky bit is set on world-writable directories
+    ansible_role: cis-l2
+    ansible_task: tasks/6_maintenance.yml
+    frameworks:
+      CIS_AL2023_L2: ["6.1.12"]
+      PCI_DSS_v4.0: ["2.2.1"]
+      NIST_800-53_Rev5: [CM-6]
+
+  - id: MAINT-007
+    title: Ensure no accounts have empty password fields
+    ansible_role: cis-l2
+    ansible_task: tasks/6_maintenance.yml
+    frameworks:
+      CIS_AL2023_L2: ["6.2.1"]
+      PCI_DSS_v4.0: ["8.2.1", "8.3.1"]
+      SOC2_TSC: [CC6.1]
+      NIST_800-53_Rev5: [IA-5]
+
+  - id: MAINT-008
+    title: Ensure root is the only UID 0 account
+    ansible_role: cis-l2
+    ansible_task: tasks/6_maintenance.yml
+    frameworks:
+      CIS_AL2023_L2: ["6.2.5"]
+      PCI_DSS_v4.0: ["8.2.1", "7.2.1"]
+      SOC2_TSC: [CC6.2]
+      NIST_800-53_Rev5: [IA-2, AC-6]
+
+  # ── Additional Network Controls ────────────────────────────────────────────
+  - id: NET-003
+    title: Disable IPv6 on node interfaces not requiring it
+    ansible_role: cis-l2
+    ansible_task: tasks/3_network.yml
+    frameworks:
+      CIS_AL2023_L2: ["3.1.1", "3.1.2"]
+      PCI_DSS_v4.0: ["1.3.1", "1.3.2"]
+      NIST_800-53_Rev5: [CM-7, SC-7]
+
+  # ── Additional Logging Controls ────────────────────────────────────────────
+  - id: LOG-004
+    title: Configure rsyslog for local log persistence and retention
+    ansible_role: cis-l2
+    ansible_task: tasks/4_logging.yml
+    frameworks:
+      CIS_AL2023_L2: ["4.2.1.1", "4.2.1.2", "4.2.1.3"]
+      PCI_DSS_v4.0: ["10.3.1", "10.5.1", "10.7.1"]
+      SOC2_TSC: [CC7.1, CC7.2]
+      NIST_800-53_Rev5: [AU-3, AU-9, AU-11]
+
+  - id: LOG-005
+    title: Configure systemd-journald for persistent storage and rate limiting
+    ansible_role: cis-l2
+    ansible_task: tasks/4_logging.yml
+    frameworks:
+      CIS_AL2023_L2: ["4.2.2.1", "4.2.2.2"]
+      PCI_DSS_v4.0: ["10.5.1", "10.7.1"]
+      NIST_800-53_Rev5: [AU-4, AU-9]
+
+  # ── Additional Kubernetes Worker Controls ─────────────────────────────────
+  - id: K8S-009
+    title: Set kubelet event-qps to limit API server event flooding
+    ansible_role: cis-k8s-worker
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_K8s_v1.8: [4.2.9]
+      NIST_800-53_Rev5: [AU-5, SC-5]
+
+  - id: K8S-010
+    title: Set kubelet streaming-connection-idle-timeout
+    ansible_role: cis-k8s-worker
+    ansible_task: tasks/main.yml
+    frameworks:
+      CIS_K8s_v1.8: [4.2.5]
+      PCI_DSS_v4.0: ["8.2.8"]
+      NIST_800-53_Rev5: [AC-11, CM-6]

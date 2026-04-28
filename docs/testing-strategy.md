@@ -101,7 +101,7 @@ just boot-qemu
   Set `qemu_accelerator=whpx` in `vars/al2023.auto.pkrvars.hcl` for best performance.
   Requires: Settings → Windows Features → Windows Hypervisor Platform ✅
 - If WHPX is unavailable, falls back to TCG software emulation (~10× slower).
-- See [packer/README.md](../packer/README.md) for the full variable reference.
+- See [packer/README.md](https://github.com/tabyaos/tabyaos/blob/main/packer/al2023/README.md) for the full variable reference.
 
 ---
 

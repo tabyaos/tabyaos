@@ -77,7 +77,7 @@ All other roles are standalone.
 | SOC 2 overlay | `soc2-cc6-cc7-cc8` | SOC 2 CC6, CC7, CC8 |
 | Access control | `ssm-only-access` | PCI-DSS Req 8.2, SOC 2 CC6 |
 
-Full cross-framework mapping: [`compliance/control-mappings.yaml`](../compliance/control-mappings.yaml)
+Full cross-framework mapping: [`compliance/control-mappings.yaml`](compliance/control-mappings.yaml)
 
 ## Testing Layers
 

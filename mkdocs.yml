@@ -47,12 +47,17 @@ nav:
   - Getting Started: getting-started.md
   - Architecture: architecture.md
   - Threat Model: threat-model.md
+  - Data Sovereignty: sovereignty.md
   - Compliance:
       - CIS Level 2: compliance/cis-l2.md
       - PCI-DSS v4.0: compliance/pci-dss-v4.md
       - SOC 2 Type II: compliance/soc2-type-ii.md
       - Control Coverage: compliance/coverage-summary.md
   - Enterprise: enterprise.md
+  - Partnerships:
+      - Partnership Template: partnerships/tabya-x-dc-partnership-template.md
+  - Launch:
+      - One-Pager: launch/tabya-one-pager.md
 
 plugins:
   - search

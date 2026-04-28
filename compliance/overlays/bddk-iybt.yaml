@@ -1,0 +1,207 @@
+---
+# BDDK İYBT 2020-9 Control Overlay — DRAFT SCAFFOLD
+#
+# Regulation: Bankacılık Düzenleme ve Denetleme Kurumu
+#   Bilgi Sistemleri ve Bankacılık Süreçlerinin Yönetimine Dair Yönetmelik
+#   (Information Systems and Banking Process Management Regulation)
+#   Published: 2020-09-15 | Applies to: BRSA-licensed banks, participation banks,
+#   payment institutions, e-money institutions in the Republic of Turkey
+#
+# ⚠️  IMPORTANT LEGAL NOTICE
+# Every entry in this file is marked REQUIRES_LEGAL_REVIEW: true.
+# TabyaOS does NOT claim BDDK İYBT 2020-9 certification or compliance.
+# This is a mapping scaffold to assist operators in preparing their compliance
+# documentation. It must be reviewed by qualified legal counsel and a
+# BDDK-recognized auditor before use in any official audit submission.
+# Tabya makes no warranty as to the accuracy or completeness of these mappings.
+
+overlay: bddk-iybt-2020-9
+title: "BDDK Bilgi Sistemleri ve Bankacılık Süreçlerinin Yönetimine Dair Yönetmelik"
+version: "2020-9"
+jurisdiction: "Türkiye Cumhuriyeti"
+applies_to:
+  - banking
+  - participation-banking
+  - payment-institutions
+  - e-money-institutions
+legal_review_required: true
+last_updated: "2026-04-28"
+status: draft
+
+controls:
+  # Article 11 — Physical and Logical Security
+
+  - id: BDDK-001
+    # REQUIRES_LEGAL_REVIEW: true
+    bddk_article: "Madde 11/2 — Erişim Kontrolü"
+    bddk_article_en: "Article 11.2 — Access Control"
+    title: "Restrict privileged access to information systems"
+    description: >
+      BDDK İYBT Article 11.2 requires that access to information systems is
+      restricted to authorized personnel and that privileged access is logged
+      and monitored. Maps to TabyaOS SSM-only access (no SSH), sudo logging,
+      and PAM account lockout controls.
+    tabyaos_controls:
+      - SSM-001   # Disable SSH, enforce SSM Session Manager
+      - SSM-002   # Block TCP port 22 via iptables
+      - ACC-004   # Restrict sudo — require password, log all sudo usage
+      - ACC-002   # PAM password complexity and account lockout
+    ansible_roles:
+      - ssm-only-access
+      - cis-l2
+      - pci-dss-v4
+    coverage_notes: >
+      Full coverage for CLI access restriction. Network-level access control
+      (firewall/NSG) is out of TabyaOS scope — belongs in cluster network policy.
+
+  - id: BDDK-002
+    # REQUIRES_LEGAL_REVIEW: true
+    bddk_article: "Madde 11/2 — Sistem Sertleştirme"
+    bddk_article_en: "Article 11.2 — System Hardening"
+    title: "Document and implement OS hardening procedures"
+    description: >
+      BDDK İYBT Article 11.2 requires that hardening procedures be documented
+      and traceable to recognized standards. TabyaOS satisfies this via
+      control-mappings.yaml (machine-readable cross-framework map) and
+      per-task framework ID annotations in all Ansible roles.
+    tabyaos_controls:
+      - FS-001    # Disable unused filesystems
+      - FS-002    # Secure /tmp
+      - FS-004    # SELinux enforcing
+      - SVC-001   # Remove unnecessary services
+      - NET-001   # Disable uncommon protocols
+      - NET-002   # Harden network sysctl parameters
+      - KERN-001  # dmesg_restrict
+      - KERN-002  # kptr_restrict
+      - KERN-003  # Disable Bluetooth
+    ansible_roles:
+      - cis-l2
+      - pci-dss-v4
+    coverage_notes: >
+      compliance/control-mappings.yaml provides the machine-readable evidence
+      of mapping to CIS, PCI-DSS standards as required for documented procedures.
+
+  - id: BDDK-003
+    # REQUIRES_LEGAL_REVIEW: true
+    bddk_article: "Madde 11/3 — Denetim İzi"
+    bddk_article_en: "Article 11.3 — Audit Trail"
+    title: "Maintain tamper-evident audit logs for privileged operations"
+    description: >
+      BDDK İYBT Article 11.3 requires tamper-evident audit trails covering
+      privileged command execution, authentication events, and access to
+      sensitive system components. Maps to auditd PCI-DSS rules and
+      immutable log configuration.
+    tabyaos_controls:
+      - LOG-001   # auditd retention and disk-full actions
+      - LOG-002   # CIS baseline audit rules
+      - LOG-003   # PCI-DSS specific audit rules (auditd-pci role)
+      - SOC2-004  # kubectl, shell exec, interpreter exec audit rules
+      - SOC2-005  # rsyslog authpriv to /var/log/secure
+    ansible_roles:
+      - cis-l2
+      - auditd-pci
+      - soc2-cc6-cc7-cc8
+    coverage_notes: >
+      Auditd rules cover privileged command execution and authentication events.
+      Log retention and space management addressed. Remote log forwarding
+      (Article 11.3 may require centralized SIEM) is out of node-level scope.
+
+  - id: BDDK-004
+    # REQUIRES_LEGAL_REVIEW: true
+    bddk_article: "Madde 11/4 — İzleme ve Uyarı"
+    bddk_article_en: "Article 11.4 — Monitoring and Alerting"
+    title: "Implement file integrity monitoring on critical system paths"
+    description: >
+      BDDK İYBT Article 11.4 requires monitoring of system changes to detect
+      unauthorized modifications. Maps to AIDE file integrity monitoring.
+    tabyaos_controls:
+      - FIM-001   # AIDE file integrity monitoring
+    ansible_roles:
+      - aide
+    coverage_notes: >
+      AIDE covers the node-level FIM requirement. Centralized alerting
+      (SIEM integration, AIDE report aggregation) requires additional tooling
+      outside TabyaOS scope.
+
+  - id: BDDK-005
+    # REQUIRES_LEGAL_REVIEW: true
+    bddk_article: "Madde 12/1 — Şifreleme"
+    bddk_article_en: "Article 12.1 — Cryptographic Controls"
+    title: "Enable FIPS-validated cryptographic modules"
+    description: >
+      BDDK İYBT Article 12.1 requires that cryptographic controls protecting
+      sensitive data meet recognized standards. FIPS 140-2/3 mode via
+      update-crypto-policies ensures only validated cipher suites are available
+      system-wide.
+    tabyaos_controls:
+      - FIPS-001  # Enable FIPS mode (kernel crypto + OpenSSL FIPS provider)
+      - FIPS-002  # Set OS crypto policy to FIPS
+      - K8S-004   # kubelet TLS minimum version and cipher suites
+    ansible_roles:
+      - fips-mode
+      - cis-k8s-worker
+    coverage_notes: >
+      FIPS mode is enabled at OS level affecting all cryptographic operations.
+      Application-level encryption (database, message bus) is out of scope.
+
+  - id: BDDK-006
+    # REQUIRES_LEGAL_REVIEW: true
+    bddk_article: "Madde 12/2 — Zaman Damgası"
+    bddk_article_en: "Article 12.2 — Time Synchronization"
+    title: "Synchronize system time to trusted time source"
+    description: >
+      Accurate and synchronized timestamps are required for audit trail
+      integrity and legal admissibility of log evidence under BDDK İYBT.
+      Maps to chronyd configuration with Amazon Time Sync Service or
+      equivalent NTP source.
+    tabyaos_controls:
+      - TIME-001  # Configure chronyd with Amazon Time Sync Service
+    ansible_roles:
+      - chrony-hardened
+    coverage_notes: >
+      Configure the NTP server address in chrony-hardened defaults to a
+      Turkish or regulatory-approved time source for BDDK environments.
+
+  - id: BDDK-007
+    # REQUIRES_LEGAL_REVIEW: true
+    bddk_article: "Madde 13/2 — Güvenlik Olayı Yönetimi"
+    bddk_article_en: "Article 13.2 — Security Incident Evidence Preservation"
+    title: "Preserve evidence for security incident investigation"
+    description: >
+      BDDK İYBT Article 13.2 requires that systems maintain sufficient
+      evidence to support security incident investigations. The combination
+      of auditd immutable rules, AIDE baseline, and Cosign-signed build
+      artifacts provides the evidence chain.
+    tabyaos_controls:
+      - FIM-001   # AIDE baseline (detect unauthorized file changes)
+      - LOG-002   # Comprehensive audit rules
+      - LOG-003   # PCI-DSS specific audit rules
+      - CM-001    # Immutable image change management (Cosign-signed builds)
+    ansible_roles:
+      - aide
+      - cis-l2
+      - auditd-pci
+    coverage_notes: >
+      Node-level evidence preservation is covered. BDDK may require retention
+      periods (commonly 5 years for banking records) — verify log retention
+      configuration matches regulatory requirement.
+
+  - id: BDDK-008
+    # REQUIRES_LEGAL_REVIEW: true
+    bddk_article: "Madde 14/1 — Güvenlik Testleri"
+    bddk_article_en: "Article 14.1 — Security Testing"
+    title: "Verify hardening implementation through automated testing"
+    description: >
+      BDDK İYBT Article 14.1 requires periodic security tests to verify
+      that information systems meet hardening requirements. TabyaOS satisfies
+      this via kube-bench, InSpec, and Molecule test suites run at every build.
+    tabyaos_controls: []   # Test infrastructure rather than a specific control
+    ansible_roles: []
+    test_artifacts:
+      - tests/kube-bench/   # CIS Kubernetes Benchmark worker node results
+      - tests/inspec/       # InSpec compliance profiles
+    coverage_notes: >
+      kube-bench and InSpec results are signed at build time (Cosign). The
+      signed evidence bundle satisfies the "verifiable test results" requirement.
+      Penetration testing (Article 14.2) is out of TabyaOS scope — requires
+      separate engagement.

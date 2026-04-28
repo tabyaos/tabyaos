@@ -1,0 +1,158 @@
+---
+# KVKK Control Overlay — DRAFT SCAFFOLD
+#
+# Regulation: Kişisel Verilerin Korunması Kanunu (Law No. 6698)
+#   Personal Data Protection Law — Republic of Turkey
+#   Effective: 2016-04-07 | Enforced by: Kişisel Verileri Koruma Kurumu (KVKK Board)
+#   Implementing regulation: Kişisel Verilerin İşlenmesinde Veri Güvenliğine İlişkin
+#   Rehber (KVKK Technical Security Guidance)
+#
+# ⚠️  IMPORTANT LEGAL NOTICE
+# Every entry in this file is marked REQUIRES_LEGAL_REVIEW: true.
+# TabyaOS does NOT claim KVKK compliance certification.
+# This is a mapping scaffold to assist data controllers and processors in
+# demonstrating technical security measures (Article 12) on Kubernetes
+# infrastructure. It must be reviewed by a qualified data protection counsel
+# and KVKK-recognized auditor before use in any official submission.
+
+overlay: kvkk-6698
+title: "Kişisel Verilerin Korunması Kanunu — Teknik Güvenlik Tedbirleri"
+version: "6698 + KVKK Technical Guidance 2018"
+jurisdiction: "Türkiye Cumhuriyeti"
+applies_to:
+  - data-controllers      # Veri Sorumluları
+  - data-processors       # Veri İşleyenler
+  - sensitive-data-categories:
+      - financial
+      - health
+      - biometric
+      - identity
+legal_review_required: true
+last_updated: "2026-04-28"
+status: draft
+
+controls:
+  # Article 12 — Obligations to ensure data security
+  # KVKK Technical Guidance — Section 3 (Technical Measures)
+
+  - id: KVKK-001
+    # REQUIRES_LEGAL_REVIEW: true
+    kvkk_article: "Madde 12/1 — Teknik Güvenlik Tedbirleri"
+    kvkk_article_en: "Article 12.1 — Technical Security Measures"
+    guidance_ref: "KVKK Technical Guidance 3.1 — Access Control"
+    title: "Implement access control proportionate to data sensitivity"
+    description: >
+      KVKK Article 12(1)(a) requires technical measures to prevent unlawful
+      access to personal data. On Kubernetes worker nodes, this means
+      restricting system-level access to authorized personnel only.
+    tabyaos_controls:
+      - SSM-001   # No SSH — SSM Session Manager only
+      - SSM-002   # Block TCP 22 via iptables
+      - ACC-001   # SSH hardening (for residual SSH use cases)
+      - ACC-002   # PAM lockout and password complexity
+      - MAINT-007 # No empty password fields
+      - MAINT-008 # Root is only UID 0 account
+    ansible_roles:
+      - ssm-only-access
+      - cis-l2
+
+  - id: KVKK-002
+    # REQUIRES_LEGAL_REVIEW: true
+    kvkk_article: "Madde 12/1 — Kayıt ve Denetim"
+    kvkk_article_en: "Article 12.1 — Logging and Audit"
+    guidance_ref: "KVKK Technical Guidance 3.2 — Audit and Logging"
+    title: "Log all access to systems processing personal data"
+    description: >
+      KVKK Article 12(1)(b) requires that access to personal data be logged
+      to detect and investigate unlawful processing. Node-level audit logging
+      via auditd covers privileged access, authentication events, and
+      file system activity.
+    tabyaos_controls:
+      - LOG-001   # auditd configuration
+      - LOG-002   # CIS baseline audit rules
+      - LOG-003   # PCI-DSS audit rules (covers auth and privileged commands)
+      - SOC2-005  # rsyslog authpriv logging
+    ansible_roles:
+      - cis-l2
+      - auditd-pci
+      - soc2-cc6-cc7-cc8
+
+  - id: KVKK-003
+    # REQUIRES_LEGAL_REVIEW: true
+    kvkk_article: "Madde 12/1 — Şifreleme"
+    kvkk_article_en: "Article 12.1 — Encryption"
+    guidance_ref: "KVKK Technical Guidance 3.3 — Encryption"
+    title: "Use approved cryptographic algorithms for data at rest and in transit"
+    description: >
+      KVKK Technical Guidance Section 3.3 recommends encryption of sensitive
+      personal data categories. FIPS mode ensures that only approved cipher
+      suites are available for TLS and storage encryption at the OS level.
+    tabyaos_controls:
+      - FIPS-001  # FIPS mode
+      - FIPS-002  # Crypto policy to FIPS
+      - K8S-004   # kubelet TLS minimum version
+    ansible_roles:
+      - fips-mode
+      - cis-k8s-worker
+
+  - id: KVKK-004
+    # REQUIRES_LEGAL_REVIEW: true
+    kvkk_article: "Madde 12/1 — Bütünlük Kontrolü"
+    kvkk_article_en: "Article 12.1 — Integrity Controls"
+    guidance_ref: "KVKK Technical Guidance 3.4 — Integrity"
+    title: "Detect unauthorized modification of system files"
+    description: >
+      KVKK Technical Guidance Section 3.4 recommends integrity controls to
+      detect unauthorized modification of systems processing personal data.
+      AIDE (file integrity monitoring) provides detection capability.
+    tabyaos_controls:
+      - FIM-001   # AIDE file integrity monitoring
+    ansible_roles:
+      - aide
+
+  - id: KVKK-005
+    # REQUIRES_LEGAL_REVIEW: true
+    kvkk_article: "Madde 12/2 — Veri İhlali Tespiti"
+    kvkk_article_en: "Article 12.2 — Breach Detection"
+    guidance_ref: "KVKK Technical Guidance 3.5 — Monitoring"
+    title: "Enable monitoring sufficient to detect personal data breaches"
+    description: >
+      KVKK Article 12(2) requires notification to the Board within 72 hours
+      of discovering a personal data breach. This requires breach-detection
+      capability at the infrastructure layer. Auditd rules covering
+      authentication and privileged command execution provide the telemetry.
+    tabyaos_controls:
+      - LOG-002   # Comprehensive audit rules
+      - LOG-003   # PCI-DSS audit rules
+      - FIM-001   # AIDE integrity monitoring
+      - SOC2-004  # kubectl, interpreter exec audit rules
+    ansible_roles:
+      - cis-l2
+      - auditd-pci
+      - aide
+    coverage_notes: >
+      Node-level monitoring telemetry only. A complete breach detection
+      capability requires a SIEM that aggregates and correlates these logs.
+      SIEM integration is outside TabyaOS scope.
+
+  - id: KVKK-006
+    # REQUIRES_LEGAL_REVIEW: true
+    kvkk_article: "Madde 12/1 — Sistem Sertleştirme"
+    kvkk_article_en: "Article 12.1 — System Configuration Baseline"
+    guidance_ref: "KVKK Technical Guidance 3.6 — System Hardening"
+    title: "Apply and document system hardening baseline"
+    description: >
+      KVKK Technical Guidance Section 3.6 recommends that systems processing
+      personal data follow documented hardening procedures. TabyaOS CIS L2
+      baseline with machine-readable control mappings satisfies this requirement.
+    tabyaos_controls:
+      - FS-001    # Disable unused filesystems
+      - FS-002    # Secure /tmp
+      - FS-004    # SELinux enforcing
+      - NET-001   # Disable uncommon protocols
+      - NET-002   # Harden network sysctl
+      - KERN-001  # dmesg_restrict
+      - KERN-002  # kptr_restrict
+    ansible_roles:
+      - cis-l2
+      - pci-dss-v4
